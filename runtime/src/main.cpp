@@ -1448,6 +1448,7 @@ static bool          g_ws_engaged = true;
  * present 1:1 — the GTE is NOT squashed) vs. the legacy squash hack. Default
  * native-wide; toggle live via the ws_nw TCP command for A/B comparison. */
 static int           g_ws_native_wide = 1;
+static int           g_ws_squash = 1;   /* [widescreen] squash; 0 = stretch-only present */
 /* Logical present width for the SDL_Renderer (software) path; 640*scale at
  * 4:3, wider for wide aspects. Height is always 480*scale. Set at window
  * creation alongside SDL_RenderSetLogicalSize. */
@@ -1548,8 +1549,12 @@ static void refresh_widescreen_projection() {
     g_ws_projection_mode = mode;
     g_ws_projection_num = proj_num;
     g_ws_projection_den = proj_den;
-    gte_set_display_aspect(mode == 1 ? proj_num : 4,
-                           mode == 1 ? proj_den : 3);
+    /* squash=false: present the vanilla 4:3 frame stretched to the wide window
+     * (FOV unchanged) so games whose logic reads projected SXY are never
+     * corrupted by the GTE X-squash. gpu_ws_configure still runs in mode 1 so
+     * the FMV/menu pillarbox and untagged-SPRT correction paths behave. */
+    gte_set_display_aspect(mode == 1 && g_ws_squash ? proj_num : 4,
+                           mode == 1 && g_ws_squash ? proj_den : 3);
     gpu_ws_configure(proj_num, proj_den, g_ws_anchor_addr,
                      g_ws_hud_sprt ? 1 : 0, mode);
 }
@@ -1608,6 +1613,15 @@ extern "C" void psx_ws_set_native_wide(int on) {
     refresh_widescreen_projection();
 }
 extern "C" int psx_ws_get_native_wide(void) { return g_ws_native_wide; }
+
+/* Live GTE-squash vs stretch-only A/B (ws_squash TCP command). */
+extern "C" void psx_ws_set_squash(int on) {
+    g_ws_squash = on ? 1 : 0;
+    gpu_ws_set_squash(g_ws_squash);
+    g_ws_projection_mode = -1;
+    refresh_widescreen_projection();
+}
+extern "C" int psx_ws_get_squash(void) { return g_ws_squash; }
 
 static bool          g_gl_active = false;    /* GL context live -> GL present path */
 static bool          g_vk_active = false;    /* Vulkan context live -> VK present path */
@@ -10670,6 +10684,9 @@ int main(int argc, char** argv) {
                                   gc.ws_bg2d_packet_cap);
             /* [widescreen] gte_game_mode — 3D-title gameplay detector (Ape). */
             gpu_ws_set_gte_game_mode(gc.ws_gte_game_mode ? 1 : 0);
+            /* [widescreen] squash — 0 = stretch-only present (no GTE squash,
+             * menus present stretched uniformly). */
+            gpu_ws_set_squash(gc.ws_squash ? 1 : 0);
             gpu_ws_set_precise_nclip(gc.ws_precise_nclip ? 1 : 0);
             gpu_ws_set_gameplay_state_gate(
                 gc.ws_gameplay_state_addr,
@@ -10678,6 +10695,7 @@ int main(int argc, char** argv) {
             /* Keep titles with known native-wide regressions on the original
              * projection-squash + stretched-present widescreen path. */
             g_ws_native_wide = gc.ws_native_wide ? 1 : 0;
+            g_ws_squash = gc.ws_squash ? 1 : 0;
             /* [widescreen] nw_hud_corners — push HUD to the true wide corners. */
             gpu_ws_set_nw_hud_corners(gc.ws_nw_hud_corners ? 1 : 0);
             /* Targeted left-HUD packet range — avoids shifting 2D scenery. */

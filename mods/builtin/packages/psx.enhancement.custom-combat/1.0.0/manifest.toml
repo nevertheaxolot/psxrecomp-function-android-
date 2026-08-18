@@ -1,0 +1,69 @@
+format_version = 5
+id = "psx.enhancement.custom-combat"
+version = "1.0.0"
+name = "Custom Combat Engine (WIP)"
+author = "NovaPowers"
+description = "WIP - NOT RECOMMENDED FOR USE. Replace Final Bout's clunky combat with a fluid, responsive SFEX-style engine. Optional and toggleable: off runs the original TOSE loop 1:1; on hijacks input (0-frame lag), physics (Newtonian gravity) and framedata (startup/active/recovery + cancels). Guest bridge (animation IDs / fighter base) is incomplete; do not enable on a real fight."
+
+[[target]]
+game_id = "*"
+
+[[feature]]
+id = "combat"
+name = "Custom Combat Engine (WIP)"
+author = "NovaPowers"
+description = "WIP - NOT RECOMMENDED FOR USE. SFEX-style fighting engine running over the recompiled game."
+default_enabled = false
+
+# The global toggle behind custom_combat_engine_enabled in custom_combat.h.
+# FALSE (with the feature enabled) keeps the 1:1 TOSE loop; TRUE hijacks it.
+# Default FALSE: the guest bridge (input remap + animation driving) requires
+# the Phase-2 disassembly (cc_game_layout) before it is safe on a real fight.
+[[option]]
+feature = "combat"
+id = "enabled"
+label = "Engine active"
+description = "Runs the custom combat engine. Off keeps the game's own combat flow untouched. Requires Phase-2 guest mapping before enabling."
+type = "boolean"
+default = "false"
+
+# Fighter profile per the design: Square punch, Circle kick, X guard,
+# Up jump, Down+Square/Circle low hits, Triangle ki blast.
+[[option]]
+feature = "combat"
+id = "input_profile"
+label = "Input profile"
+description = "fighter = SFEX-style button layout. original = leave the game's own button semantics untouched."
+type = "choice"
+choice = [
+  { value = "fighter", label = "Fighter (SFEX-style)" },
+  { value = "original", label = "Original buttons" },
+]
+default = "fighter"
+
+[[option]]
+feature = "combat"
+id = "gravity"
+label = "Jump gravity"
+description = "Higher = snappier, less floaty jumps (Newtonian). 100 = default tuning."
+type = "integer"
+min = 20
+max = 400
+step = 10
+default = 100
+
+[[option]]
+feature = "combat"
+id = "move_speed"
+label = "Movement speed"
+description = "Lateral dash/walk velocity multiplier. 100 = default."
+type = "integer"
+min = 50
+max = 300
+step = 10
+default = 100
+
+[[plugin]]
+feature = "combat"
+id = "psx.custom-combat"
+order = 0

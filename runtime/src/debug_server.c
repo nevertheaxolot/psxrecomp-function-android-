@@ -7825,6 +7825,18 @@ static void handle_ws_nw(int id, const char *json)
              id, psx_ws_get_native_wide(), ws.mode, ws.nw_extra);
 }
 
+extern void psx_ws_set_squash(int on);
+extern int  psx_ws_get_squash(void);
+static void handle_ws_squash(int id, const char *json)
+{
+    int on = json_get_int(json, "on", -1);
+    if (on >= 0) psx_ws_set_squash(on);
+    GpuWsDebug ws;
+    gpu_ws_get_debug(&ws);
+    send_fmt("{\"id\":%d,\"ok\":true,\"squash\":%d,\"mode\":%d,\"xnum\":%d,\"xden\":%d}",
+             id, psx_ws_get_squash(), ws.mode, ws.xnum, ws.xden);
+}
+
 /* ws_backdrop_ring: dump the always-on auto_backdrop rewrite ring (which windows
  * fire, live extent/camera/DL-count, orig vs final bound). Read-only; small
  * heap envelope so the per-byte stall of a giant read is never in play. */
@@ -13234,6 +13246,7 @@ static const CmdEntry s_commands[] = {
     { "kernel_bless",      handle_kernel_bless },
     { "ws_aspect",         handle_ws_aspect },
     { "ws_nw",             handle_ws_nw },
+    { "ws_squash",         handle_ws_squash },
     { "ws_backdrop_ring",  handle_ws_backdrop_ring },
     { "ws_backdrop_margin", handle_ws_backdrop_margin },
     { "ws_backdrop_stretch", handle_ws_backdrop_stretch },

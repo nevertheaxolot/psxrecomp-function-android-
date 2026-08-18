@@ -108,7 +108,13 @@ static uint16_t ws_ui_prepass_rank = 0xFFFFu;
  * in native-wide mode. */
 static int      ws_mode    = 0;
 static int      ws_cfg_num = 4, ws_cfg_den = 3;
+static int      ws_squash_cfg = 1;   /* [widescreen] squash; 0 = stretch-only present */
 static void ws_nw_sync_target(void);
+
+/* Set by the runtime from [widescreen] squash. When off, the GTE is never
+ * squashed and the guest stays vanilla; only the presentation stretches. */
+void gpu_ws_set_squash(int on) { ws_squash_cfg = on ? 1 : 0; }
+int  gpu_ws_get_squash(void)   { return ws_squash_cfg; }
 
 #define WS_TAG_BUCKETS 4096                  /* power of two */
 #define WS_TAG_PROBES  8
@@ -120,7 +126,14 @@ static uint32_t ws_last_3d_stamp  = (uint32_t)-1000; /* frame of newest shaded p
 extern uint64_t s_frame_count;               /* defined in debug_server.c */
 extern int      mdec_recently_active(uint32_t within_frames);  /* mdec.c */
 
-static int ws_configured(void) { return ws_xnum != ws_xden; }
+static int ws_configured(void) {
+    /* Stretch-only mode (squash=false) is "configured" too so the 2D/3D
+     * game-mode detector and FMV/menu pillarbox still run — but ws_xnum==ws_xden
+     * stays 1/1, so every per-prim squash is an identity no-op. The only wide
+     * effect is the presentation stretch. */
+    if (ws_squash_cfg == 0 && ws_mode == 1) return 1;
+    return ws_xnum != ws_xden;
+}
 
 /* Any wide mode engaged (squash or native-wide). Drives the FMV/menu 4:3
  * pillarbox + the game-vs-2D detector, which both modes share. */
@@ -197,13 +210,42 @@ void gpu_ws_set_gameplay_state_gate(uint32_t addr,
         ws_gameplay_state_values[i] = values[i];
 }
 
+/* Frames of consistent state before a combate<->menu gate transition is
+ * applied. The match pointer / fight flags can flicker during the load-in
+ * and round transitions; a per-frame flip would present 4:3 and stretched
+ * alternately for a few frames, which corrupts the backbuffer and can crash
+ * on fight entry. Debounce so only a sustained state change wins. */
+#define WS_STATE_GATE_HYSTERESIS 8u
+static int ws_state_gate_applied = 0;    /* last committed gate result        */
+static uint32_t ws_state_gate_changed = 0;/* frame the raw state last differed */
+static int ws_state_gate_tracking = 0;   /* mid-transition?                   */
 static int ws_gameplay_state_matches(void) {
     if (!ws_gameplay_state_addr || ws_gameplay_state_value_count == 0)
         return -1;
     uint32_t state = psx_read_word(ws_gameplay_state_addr);
-    for (int i = 0; i < ws_gameplay_state_value_count; i++)
-        if (state == ws_gameplay_state_values[i]) return 1;
-    return 0;
+    int raw = 0;
+    for (int i = 0; i < ws_gameplay_state_value_count; i++) {
+        /* Sentinel 0xFFFFFFFF: match ANY nonzero value. */
+        if (ws_gameplay_state_values[i] == 0xFFFFFFFFu) { raw = state != 0; break; }
+        if (state == ws_gameplay_state_values[i]) { raw = 1; break; }
+    }
+    uint32_t f = (uint32_t)s_frame_count;
+    if (raw == ws_state_gate_applied) {
+        ws_state_gate_tracking = 0;            /* stable — drop any transition */
+        ws_state_gate_changed = f;
+        return ws_state_gate_applied;
+    }
+    /* raw differs from what we last committed: only flip after the new state
+     * has held for the debounce window (rides out load-in flicker). */
+    if (!ws_state_gate_tracking) {
+        ws_state_gate_tracking = 1;
+        ws_state_gate_changed = f;
+    }
+    if ((uint32_t)(f - ws_state_gate_changed) >= WS_STATE_GATE_HYSTERESIS) {
+        ws_state_gate_applied = raw;
+        ws_state_gate_tracking = 0;
+    }
+    return ws_state_gate_applied;
 }
 
 /* World-scale 3D signal for the 2D-only-scene classifier (sprite-tag titles).
@@ -1676,12 +1718,19 @@ void gpu_ws_configure(int aspect_num, int aspect_den,
     ws_cfg_den = aspect_den > 0 ? aspect_den : 3;
     ws_mode    = mode;
     if (mode == 1) {
-        /* Squash factor = (4*den)/(3*num) — the same factor the GTE applies. */
-        int32_t n = 4 * ws_cfg_den, d = 3 * ws_cfg_num;
-        int32_t a = n, b = d;
-        while (b) { int32_t t = a % b; a = b; b = t; }
-        ws_xnum = n / a;
-        ws_xden = d / a;
+        /* Squash factor = (4*den)/(3*num) — the same factor the GTE applies.
+         * In stretch-only mode (squash=false) there is no squash to keep in
+         * lockstep: ws_xnum/ws_xden stay 1/1 (no per-prim re-squash), the GTE
+         * is vanilla, and only the presentation stretches. */
+        if (ws_squash_cfg) {
+            int32_t n = 4 * ws_cfg_den, d = 3 * ws_cfg_num;
+            int32_t a = n, b = d;
+            while (b) { int32_t t = a % b; a = b; b = t; }
+            ws_xnum = n / a;
+            ws_xden = d / a;
+        } else {
+            ws_xnum = ws_xden = 1;
+        }
     } else {
         /* Native-wide (2) and off (0): the GTE is NOT squashed. */
         ws_xnum = ws_xden = 1;

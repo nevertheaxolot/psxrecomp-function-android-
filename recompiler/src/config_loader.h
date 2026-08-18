@@ -967,6 +967,15 @@ struct GameConfig {
     // + stretched-present path when native-wide is not regression-free.
     bool ws_native_wide = true;
 
+    // [widescreen] squash — the legacy GTE X-squash that widens the 3D FOV
+    // into the 320 frame (present stretches it back out). Titles whose
+    // gameplay/rendering logic reads projected screen coords (SXY) for actor
+    // culling, flip decisions or UI layout get those reads corrupted by the
+    // squash, so this can be disabled to present the vanilla 4:3 frame
+    // stretched instead — zero guest-visible mutation, no FOV widening.
+    // Defaults on for compatibility. Runtime-only — no regen required.
+    bool ws_squash = true;
+
     // [widescreen] nw_hud_corners — in native-wide, push outer-third screen-
     // space HUD sprites out to the true wide-frame corners (they otherwise sit
     // inset by the reveal offset). Runtime-only — no regen. Off by default.

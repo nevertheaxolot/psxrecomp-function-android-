@@ -1,0 +1,39 @@
+format_version = 5
+id = "psx.enhancement.widescreen"
+version = "1.0.0"
+name = "Widescreen (WIP)"
+author = "NovaPowers"
+description = "WIP - True widescreen view: expands the 3D camera's horizontal field of view to 16:9 or 21:9 instead of stretching the 4:3 image. Per-game [widescreen] sites in game.toml decide how far the render funnel, backdrops and HUD are revealed. Known issue: shadow/far-depth projection problems exist on the vanilla (4:3) port and are not fixed by this mod."
+resolver = "declarative"
+save_compatibility = "shared"
+
+# The display aspect is a property of the emulated GTE/GPU pair, not of any
+# particular disc, so this ships with the framework and applies to every game.
+# The actual FOV expansion is per-title: game.toml [widescreen.cull]
+# (auto_screen_x / authored sites) rewrites that title's render funnel.
+[[target]]
+game_id = "*"
+
+[[feature]]
+id = "widescreen"
+name = "Widescreen View (WIP)"
+description = "WIP - Disabled by default (the faithful 4:3 floor). When enabled the display aspect moves to the selected ratio; on titles with authored widescreen sites the 3D camera reveals the extra horizontal world instead of stretching. 2D HUD elements may need per-game sites to stay pinned. Not yet release-ready."
+group = "Visual"
+default_enabled = false
+
+[[option]]
+feature = "widescreen"
+id = "aspect"
+label = "Aspect ratio"
+description = "16:9 widescreen or 21:9 ultrawide."
+group = "Visual"
+type = "choice"
+choice = [
+  { value = "16:9", label = "16:9" },
+  { value = "21:9", label = "21:9" },
+]
+default = "16:9"
+
+[[plugin]]
+feature = "widescreen"
+id = "psx.widescreen"
