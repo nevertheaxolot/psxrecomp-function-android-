@@ -28,6 +28,14 @@ extern "C" {
  * default for an update that arrives without one. */
 #define PSX_LOBBY_SPECTATOR_SLOT_BASE 64
 #define PSX_LOBBY_MAX_LAN_EPS 4
+/* Host-published lobby mod plan (match_caps.mods). Bounded to the packages a
+ * peer must have installed to seat; the host owns the list, guests get a
+ * read-only view + verify against their local catalog. */
+#define PSX_LOBBY_MAX_PLAN_MODS 16
+#define PSX_LOBBY_PLAN_MOD_ID_LEN 96
+#define PSX_LOBBY_PLAN_MOD_VERSION_LEN 32
+#define PSX_LOBBY_PLAN_MOD_NAME_LEN 64
+#define PSX_LOBBY_PLAN_MOD_FEATURES_LEN 512
 #define PSX_LOBBY_LANG_LEN 16
 
 #ifndef PSX_GAME_VERSION
@@ -137,6 +145,20 @@ typedef struct PsxLobbyChatMsg {
  * Host-authoritative sim settings negotiated over the lobby.
  * Guests apply these on launch so both peers boot with matching caps.
  */
+/* One package of the host's lobby mod plan. `config` carries the host's
+ * resolved feature selection for this package (JSON object, e.g.
+ * {"features":{"widescreen":{"enabled":true,"values":{"mode":"16:9"}}}}),
+ * so guests adopt the host's configuration rather than their own offline
+ * selection. Empty for a package the host enabled with default options. */
+typedef struct PsxLobbyPlanMod {
+    char id[PSX_LOBBY_PLAN_MOD_ID_LEN];
+    char version[PSX_LOBBY_PLAN_MOD_VERSION_LEN];
+    char name[PSX_LOBBY_PLAN_MOD_NAME_LEN];
+    char config[PSX_LOBBY_PLAN_MOD_FEATURES_LEN];
+    int  builtin;  /* 1 = ships with the release (always installable) */
+    uint32_t size; /* unpacked payload bytes (0 when builtin/unknown) */
+} PsxLobbyPlanMod;
+
 typedef struct PsxLobbyMatchCaps {
     int  valid;            /* 1 when a host blob was received / set */
     int  aspect_num;       /* e.g. 4, 16, 21 */
@@ -163,6 +185,11 @@ typedef struct PsxLobbyMatchCaps {
     char language[PSX_LOBBY_LANG_LEN];
     /* Settled match BIOS: "openbios" | "scph1001" | "" (unset / legacy). */
     char session_bios[16];
+    /* Host-authoritative lobby mod plan (match_caps.mods). `plan_count` is 0
+     * when the host published no mods (vanilla session). Guests mirror it to
+     * show what they will run and verify installs before launch. */
+    PsxLobbyPlanMod plan[PSX_LOBBY_MAX_PLAN_MODS];
+    int plan_count;
 } PsxLobbyMatchCaps;
 
 typedef struct PsxLobbyJoinInfo {
@@ -233,6 +260,14 @@ const char *psx_lobby_game_version(void);
  */
 void psx_lobby_set_disc_fp(const char *disc_fp);
 const char *psx_lobby_disc_fp(void);
+
+/* Mod catalog offer for the lobby `mod_offer` join field. The server compares
+ * the guest's installed package list against the host's match_caps.mods before
+ * seating; a guest that names every required package seats directly. Builder
+ * writes the JSON array ({"id":..,"ver":..}) into out/out_cap and returns
+ * bytes written (0 = nothing installed / no provider). */
+typedef size_t (*PsxLobbyModOfferBuilder)(char *out, size_t out_cap);
+void psx_lobby_set_mod_offer_builder(PsxLobbyModOfferBuilder builder);
 
 /* Default max_slots for create (clamped 2..8, default 2). */
 void psx_lobby_set_max_slots(int max_slots);

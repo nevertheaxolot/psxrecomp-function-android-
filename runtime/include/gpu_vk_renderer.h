@@ -53,6 +53,12 @@ void vk_renderer_restage_vram_after_savestate(void);
  * frames; unsupported modes fall back to FIFO (always available). */
 void vk_renderer_set_present_mode(int mode);
 
+/* Set the presentation aspect used by the 15-bit VRAM and CPU (FMV) letterbox
+ * when the caller does not force 4:3. Mirrors gl_renderer_set_display_aspect:
+ * the widescreen mod selects 16:9/21:9/adaptive here, and the swapchain rect
+ * follows. Identity defaults to 4:3. */
+void vk_renderer_set_display_aspect(int num, int den);
+
 #ifdef __cplusplus
 }
 #endif

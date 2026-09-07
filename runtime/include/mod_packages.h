@@ -409,6 +409,17 @@ public:
         return packages_;
     }
     const std::map<std::string, ModSelection>& selections() const { return selections_; }
+    /* Netplay transient plan support: snapshot/restore the whole selection map
+     * so a host's lobby plan can be applied and committed without ever writing
+     * the user's persisted offline selection. restore() overwrites in memory
+     * only; nothing here touches disk. */
+    std::map<std::string, ModSelection> selections_snapshot() const {
+        return selections_;
+    }
+    void selections_restore(
+        const std::map<std::string, ModSelection>& snapshot) {
+        selections_ = snapshot;
+    }
     const ModPackage* selected_package(const std::string& id) const;
     const ModFeature* selected_feature(const std::string& package_id,
                                        const std::string& feature_id) const;

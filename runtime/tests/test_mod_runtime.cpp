@@ -1,6 +1,7 @@
 #include "mod_runtime.h"
 #include "mod_packages.h"
 #include "mod_plugins.h"
+#include "psx_lobby_client.h"
 #include "psx_sha256.h"
 
 #include "gpu.h"
@@ -490,6 +491,73 @@ int main() {
     check(psx_mod_display_width() == 0u && psx_mod_display_height() == 0u,
           "unestablished display geometry must report zero so callers skip "
           "drawing instead of guessing");
+
+    /* Netplay lobby mod plan: the host serializes its enabled selection, a
+     * guest applies it transiently (never persisting the host's config over
+     * the user's offline selection). */
+    {
+        check(PSXRecompV4::mod_runtime_initialize(
+                  root, "SLUS-RUNTIME", 0x80002000, {}, &error),
+              error.c_str());
+        check(PSXRecompV4::mod_runtime_commit(stock_path, &error), error.c_str());
+
+        /* Host side: build the plan from the manager. dynamic-main is enabled
+         * with a non-default option; serialize it and confirm the tokens. */
+        char cfg[512];
+        const bool serialized = PSXRecompV4::mod_runtime_netplay_serialize_package(
+            "runtime.test", cfg, sizeof(cfg));
+        check(serialized, "host plan must serialize an enabled package");
+        check(std::string(cfg).find("dynamic-main") != std::string::npos,
+              "serialized plan must name the enabled feature");
+        check(std::string(cfg).find("dynamic-main.count=42") != std::string::npos,
+              "serialized plan must carry the resolved option value");
+
+        /* Snapshot the persisted selection so we can prove the transient apply
+         * does not clobber it on disk. */
+        PsxLobbyPlanMod plan[8];
+        memset(plan, 0, sizeof(plan));
+        const int plan_n = PSXRecompV4::mod_runtime_netplay_fill_plan(plan, 8);
+        check(plan_n >= 1, "host plan must contain the enabled package");
+        check(std::string(plan[0].id) == "runtime.test",
+              "host plan entry must carry the package id");
+        check(plan[0].builtin == 0,
+              "installed (non-bundled) package must not be marked builtin");
+
+        /* Guest side: a plan that requests only the sparse-main feature with
+         * frames=7 must apply transiently and leave the disk state untouched. */
+        memset(plan, 0, sizeof(plan));
+        std::snprintf(plan[0].id, sizeof(plan[0].id), "runtime.test");
+        std::snprintf(plan[0].version, sizeof(plan[0].version), "1.0.0");
+        std::snprintf(plan[0].config, sizeof(plan[0].config),
+                      "sparse-main;sparse-main.frames=7");
+        int missing = -1;
+        check(PSXRecompV4::mod_runtime_netplay_apply_plan(
+                  plan, 1, &missing, stock_path, &error),
+              error.c_str());
+        check(missing == 0,
+              "a plan whose package is installed locally must report no missing");
+        /* The committed plan must now target sparse-main's address. */
+        ram[0x2000] = 2; ram[0x2001] = 0; ram[0x2002] = 1; ram[0x2003] = 0x32;
+        mod_runtime_on_dispatch(0x80002000);
+        check(ram[0x2001] == 0x42,
+              "applied host plan must drive the sparse guard-only byte");
+
+        /* Re-init from disk: the transient host selection must NOT have been
+         * written — the persisted state still enables dynamic-main with
+         * count=42. */
+        check(PSXRecompV4::mod_runtime_initialize(
+                  root, "SLUS-RUNTIME", 0x80002000, {}, &error),
+              error.c_str());
+        check(PSXRecompV4::mod_runtime_commit(stock_path, &error), error.c_str());
+        char cfg2[512];
+        const bool reserialized = PSXRecompV4::mod_runtime_netplay_serialize_package(
+            "runtime.test", cfg2, sizeof(cfg2));
+        check(reserialized &&
+                  std::string(cfg2).find("dynamic-main") != std::string::npos &&
+                  std::string(cfg2).find("sparse-main") == std::string::npos,
+              "transient netplay plan must never persist over the offline "
+              "selection");
+    }
 
     fs::remove_all(root, ec);
     if (failures) return 1;

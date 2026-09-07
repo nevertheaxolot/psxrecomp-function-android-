@@ -9852,6 +9852,11 @@ namespace {
         if (settings) caps.multitap_analog = settings->multitap_analog != 0;
         caps.guest_memcard = g_lnch_guest_memcard != 0;
         caps.guest_memcard_active = 0;
+        /* Publish the host's lobby mod plan so every peer adopts it at launch.
+         * Built from the current in-memory manager state (the UI toggled it
+         * through the Mods provider before push_match_caps). */
+        caps.plan_count = PSXRecompV4::mod_runtime_netplay_fill_plan(
+            caps.plan, PSX_LOBBY_MAX_PLAN_MODS);
         (void)psx_lobby_set_match_caps(&caps);
     }
 
@@ -11422,6 +11427,52 @@ namespace {
         return ae_np_use_ws_members() ? psx_lobby_spectator_slot(index) : -1;
     }
 
+    /* Lobby mod plan (match_caps.mods): the host owns the list, guests read a
+     * read-only view and verify installs before launch. No transfer in this
+     * build — every package ships bundled with the release — so download
+     * callbacks report nothing available. */
+    static const PsxLobbyMatchCaps* ae_np_plan_caps(void) {
+        const PsxLobbyMatchCaps* caps = psx_lobby_match_caps();
+        return (caps && caps->valid && caps->plan_count > 0) ? caps : nullptr;
+    }
+    int ae_np_lobby_mods_count(void*) {
+        const PsxLobbyMatchCaps* caps = ae_np_plan_caps();
+        return caps ? caps->plan_count : 0;
+    }
+    int ae_np_lobby_mods_get(void*, int index, RecompLauncherCNetplayLobbyMod* out) {
+        const PsxLobbyMatchCaps* caps = ae_np_plan_caps();
+        if (!out || !caps || index < 0 || index >= caps->plan_count) return 0;
+        const PsxLobbyPlanMod& mod = caps->plan[index];
+        std::memset(out, 0, sizeof(*out));
+        std::snprintf(out->id, sizeof(out->id), "%s", mod.id);
+        std::snprintf(out->version, sizeof(out->version), "%s", mod.version);
+        std::snprintf(out->name, sizeof(out->name), "%s", mod.name);
+        out->installed =
+            PSXRecompV4::mod_runtime_netplay_package_installed(mod.id, mod.version);
+        if (!out->installed) {
+            std::snprintf(out->reason, sizeof(out->reason),
+                          "not installed on this machine");
+        }
+        out->builtin = mod.builtin;
+        out->size = mod.size;
+        std::snprintf(out->options, sizeof(out->options), "%s", mod.config);
+        return 1;
+    }
+    int ae_np_lobby_mods_missing(void*) {
+        const PsxLobbyMatchCaps* caps = ae_np_plan_caps();
+        if (!caps) return 0;
+        int missing = 0;
+        for (int i = 0; i < caps->plan_count; ++i) {
+            const PsxLobbyPlanMod& mod = caps->plan[i];
+            if (!PSXRecompV4::mod_runtime_netplay_package_installed(
+                    mod.id, mod.version))
+                ++missing;
+        }
+        return missing;
+    }
+    int ae_np_lobby_mods_can_download(void*) { return 0; }
+    int ae_np_mod_xfer_progress(void*) { return -1; }
+
     int ae_np_member_get(void*, int index, RecompLauncherCNetplayMember* out) {
         if (!out) return 0;
         if (ae_np_use_ws_members()) {
@@ -12077,6 +12128,11 @@ namespace {
         g_lnch_netplay_callbacks.lobby_spectator_count = ae_np_lobby_spectator_count;
         g_lnch_netplay_callbacks.local_is_spectator = ae_np_local_is_spectator;
         g_lnch_netplay_callbacks.spectator_slot = ae_np_spectator_slot;
+        g_lnch_netplay_callbacks.lobby_mods_count = ae_np_lobby_mods_count;
+        g_lnch_netplay_callbacks.lobby_mods_get = ae_np_lobby_mods_get;
+        g_lnch_netplay_callbacks.lobby_mods_missing = ae_np_lobby_mods_missing;
+        g_lnch_netplay_callbacks.lobby_mods_can_download = ae_np_lobby_mods_can_download;
+        g_lnch_netplay_callbacks.mod_xfer_progress = ae_np_mod_xfer_progress;
         gi->netplay = g_lnch_netplay_available
             ? &g_lnch_netplay_callbacks : nullptr;
 #else
@@ -13177,6 +13233,9 @@ int main(int argc, char** argv) {
                          mod_error.c_str());
         }
     }
+    /* Lobby mod_offer: the guest's installed catalog, so the lobby server can
+     * seat it against the host's match_caps.mods without a transfer. */
+    psx_lobby_set_mod_offer_builder(&PSXRecompV4::mod_runtime_netplay_offer_json);
 
 #if defined(RECOMP_LAUNCHER)
     launcher_boot_timing_mark("host:pre_overlay_worker");
@@ -14254,11 +14313,17 @@ int main(int argc, char** argv) {
     }
 
     {
-        /* Netplay must stay vanilla: launcher commit_netplay clears the plan,
-         * but a following offline-style commit would re-resolve enabled mods
-         * from disk. Skip commit entirely when this session is netplay. */
+        /* Netplay plan handling. The launcher UI runs provider_commit_netplay
+         * (mod_runtime_netplay_plan_applied) before booting, which stages the
+         * host's lobby mod plan — or clears to vanilla when the host published
+         * none — in s.plan. Honor that: do not clear it again here. Only when
+         * netplay is enabled but no commit_netplay ran this process (e.g. a
+         * direct netplay boot with no launcher round-trip) do we fall back to
+         * vanilla. Offline boots resolve the user's persisted mods from disk. */
         std::string mod_error;
-        if (net_cfg.enabled) {
+        if (net_cfg.enabled && PSXRecompV4::mod_runtime_netplay_plan_applied()) {
+            /* launcher already staged the netplay plan; nothing to do */
+        } else if (net_cfg.enabled) {
             if (!PSXRecompV4::mod_runtime_clear_for_netplay(&mod_error)) {
                 std::fprintf(stderr,
                              "psxrecomp: cannot clear mods for netplay: %s\n",
@@ -14546,6 +14611,7 @@ session_reboot:
      * this aspect; native-wide fills it with a genuinely wider frame (no
      * stretch), squash mode stretches the 4:3 frame into it. */
     gl_renderer_set_display_aspect(g_video_aspect_num, g_video_aspect_den);
+    vk_renderer_set_display_aspect(g_video_aspect_num, g_video_aspect_den);
     if (g_video_aspect_num * 3 != g_video_aspect_den * 4) {
         /* Hold widescreen off through the BIOS boot (authentic 4:3 logos);
          * the per-frame present path engages it at game entry. */
@@ -14670,8 +14736,10 @@ session_reboot:
             /* We need to adjust the frame pacing for PAL games to run at the
              * correct speed */
             vblank_cycles = 677376u;
-            g_guest_frame_period_ms = 1000.0 / 50.0;  /* 50hz refresh rate */
-            g_frame_period_ms = g_guest_frame_period_ms;
+            if (!g_mod_native_vblank_rate) {
+                g_guest_frame_period_ms = 1000.0 / 50.0;  /* 50hz refresh rate */
+                g_frame_period_ms = g_guest_frame_period_ms;
+            }
         }
         else if (ident.region == "NTSC-J") cdrom_set_disc_scex("SCEI");
         else if (ident.region == "NTSC-U") cdrom_set_disc_scex("SCEA");
@@ -16131,7 +16199,11 @@ soft_return_lobby:
             }
             {
                 std::string mod_error;
-                if (net_cfg.enabled) {
+                if (net_cfg.enabled &&
+                    PSXRecompV4::mod_runtime_netplay_plan_applied()) {
+                    /* host netplay plan already staged by the launcher; keep it
+                     * across the rematch */
+                } else if (net_cfg.enabled) {
                     if (!PSXRecompV4::mod_runtime_clear_for_netplay(&mod_error)) {
                         std::fprintf(stderr,
                                      "psxrecomp: cannot clear mods for netplay "

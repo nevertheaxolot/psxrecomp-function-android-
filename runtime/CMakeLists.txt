@@ -506,6 +506,28 @@ if(BUILD_TESTING)
                 "${PSXRECOMP_ROOT}/runtime/src/lobby_ws/rnet_sha1.c")
             target_link_libraries(lobby_chat_ring_test PRIVATE recomp_net)
             add_test(NAME lobby_chat_ring_test COMMAND lobby_chat_ring_test)
+
+            # Lobby mod-plan wire contract. Also #includes psx_lobby_client.c,
+            # but stubs rnet_ws_write_text to CAPTURE outbound messages (and
+            # injects server frames into ws_pending) instead of sending them,
+            # so the exact JSON the host/guest put on the wire is asserted.
+            # recomp_net links real for the TU's other references; no socket
+            # is ever touched.
+            if(TARGET recomp_net)
+                add_executable(netplay_mods_synthetic_test
+                    tests/test_netplay_mods_synthetic.c)
+                target_include_directories(netplay_mods_synthetic_test PRIVATE
+                    include
+                    src
+                    "${PSXRECOMP_ROOT}/runtime/src/lobby_ws"
+                    ${_RNET_ROOT}/include)
+                target_compile_definitions(netplay_mods_synthetic_test PRIVATE
+                    PSX_HAS_LOBBY_CLIENT=1
+                    PSX_HAS_RECOMP_NET=1)
+                target_link_libraries(netplay_mods_synthetic_test PRIVATE recomp_net)
+                add_test(NAME netplay_mods_synthetic_test
+                         COMMAND netplay_mods_synthetic_test)
+            endif()
         endif()
 
         add_executable(rb_post_tip_filter_test tests/test_rb_post_tip_filter.c)
@@ -591,6 +613,12 @@ if(BUILD_TESTING)
         add_test(NAME pal_cadence_host_refresh_test
                  COMMAND ${Python3_EXECUTABLE}
                          ${CMAKE_CURRENT_SOURCE_DIR}/tests/test_pal_cadence_host_refresh.py)
+        add_test(NAME mod_native_vblank_rate_survives_pal_test
+                 COMMAND ${Python3_EXECUTABLE}
+                         ${CMAKE_CURRENT_SOURCE_DIR}/tests/test_mod_native_vblank_rate_survives_pal.py)
+        add_test(NAME mod_netplay_plan_wiring_test
+                 COMMAND ${Python3_EXECUTABLE}
+                         ${CMAKE_CURRENT_SOURCE_DIR}/tests/test_mod_netplay_plan_wiring.py)
         add_test(NAME mixed_refresh_display_cadence_test
                  COMMAND ${Python3_EXECUTABLE}
                          ${CMAKE_CURRENT_SOURCE_DIR}/tests/test_mixed_refresh_display_cadence.py)

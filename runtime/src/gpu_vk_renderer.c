@@ -1476,6 +1476,14 @@ void vk_renderer_shutdown(void) {
 
 void vk_renderer_set_present_mode(int mode) { s_present_mode_req = mode; }
 
+/* Presentation aspect for the VRAM/FMV letterbox (mod-selected; identity 4:3).
+ * Mirrors the GL backend's s_aspect_num/s_aspect_den. */
+static int s_aspect_num = 4, s_aspect_den = 3;
+void vk_renderer_set_display_aspect(int num, int den) {
+    if (num <= 0 || den <= 0) { num = 4; den = 3; }
+    s_aspect_num = num; s_aspect_den = den;
+}
+
 /* ---- present ----------------------------------------------------------- */
 /* Acquire a swapchain image, run `record` (which leaves it in
  * PRESENT_SRC_KHR-ready state), submit, present. record may be NULL for a
@@ -1690,7 +1698,8 @@ int vk_renderer_present_vram(int disp_x, int disp_y, int w, int h,
 
     VkOffset3D dst[2];
     letterbox((int)s_sc_extent.width, (int)s_sc_extent.height,
-              force_4_3 ? 4 : 4, force_4_3 ? 3 : 3, dst);
+              force_4_3 ? 4 : s_aspect_num,
+              force_4_3 ? 3 : s_aspect_den, dst);
 
     VkImageBlit blit = {0};
     blit.srcSubresource.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
@@ -1799,7 +1808,9 @@ void vk_renderer_present_cpu(const uint32_t *pixels, int src_w, int src_h,
     p_vkCmdClearColorImage(cb, sc, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, &black, 1, &rng);
 
     VkOffset3D dst[2];
-    letterbox((int)s_sc_extent.width, (int)s_sc_extent.height, 4, 3, dst);
+    letterbox((int)s_sc_extent.width, (int)s_sc_extent.height,
+              force_4_3 ? 4 : s_aspect_num,
+              force_4_3 ? 3 : s_aspect_den, dst);
     /* Short GP1(07h) bands: letterbox inside the 4:3 rect (see GL present). */
     if (src_h > 0 && src_h < 240) {
         int box_h = dst[1].y - dst[0].y;

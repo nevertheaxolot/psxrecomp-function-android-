@@ -4,6 +4,7 @@
 #include "iso_reader.h"
 #include "mod_packages.h"
 #include "mod_plugins.h"
+#include "psx_lobby_client.h"
 #include "gpu.h"
 #include "psx_sha256.h"
 
@@ -69,6 +70,11 @@ struct RuntimeMods {
     bool main_applied = false;
     bool disc_enabled = false;
     bool disc_guard_failed = false;
+    bool transient_netplay = false;  /* skip save_state during host-plan apply */
+    /* 1 once the launcher has run provider_commit_netplay this process: the
+     * netplay session's plan (host plan, or vanilla) is already staged in
+     * s.plan, so a later netplay boot must not clear it again. */
+    bool netplay_plan_applied = false;
     const ModResolution::Plugin* current_plugin = nullptr;
 };
 
@@ -1045,12 +1051,31 @@ int provider_commit(void*, const char* image_path) {
 }
 
 int provider_commit_netplay(void*, const char* image_path) {
-    (void)image_path;
     std::string error;
+    const PsxLobbyMatchCaps* caps = psx_lobby_match_caps();
+    const int plan_count = (caps && caps->valid) ? caps->plan_count : 0;
+    if (plan_count > 0) {
+        int missing = 0;
+        std::filesystem::path disc = image_path && image_path[0]
+            ? std::filesystem::path(image_path)
+            : std::filesystem::path{};
+        if (!mod_runtime_netplay_apply_plan(
+                caps->plan, plan_count, &missing, disc, &error)) {
+            set_error(error);
+            return 0;
+        }
+        std::fprintf(stdout,
+                     "psxrecomp: applied host lobby mod plan (%d package(s), "
+                     "%d missing locally)\n",
+                     plan_count, missing);
+        state().netplay_plan_applied = true;
+        return 1;
+    }
     if (!mod_runtime_clear_for_netplay(&error)) {
         set_error(error);
         return 0;
     }
+    state().netplay_plan_applied = true;
     state().error.clear();
     return 1;
 }
@@ -1120,6 +1145,8 @@ bool mod_runtime_initialize(const std::filesystem::path& root,
     s.manager.set_root(root);
     s.game_id = game_id;
     s.entry_phys = game_entry_pc & 0x1FFFFFFFu;
+    s.netplay_plan_applied = false;
+    s.transient_netplay = false;
     if (!s.manager.scan(&s.error) || !s.manager.load_state(&s.error)) {
         if (error) *error = s.error;
         return false;
@@ -1202,9 +1229,11 @@ bool mod_runtime_commit(const std::filesystem::path& disc_path, std::string* err
         if (error) *error = s.error;
         return false;
     }
-    if (!s.manager.save_state(&s.error)) {
-        if (error) *error = s.error;
-        return false;
+    if (!s.transient_netplay) {
+        if (!s.manager.save_state(&s.error)) {
+            if (error) *error = s.error;
+            return false;
+        }
     }
     s.plan = std::move(plan);
     build_disc_index(s);
@@ -1212,6 +1241,171 @@ bool mod_runtime_commit(const std::filesystem::path& disc_path, std::string* err
     s.main_applied = false;
     s.error.clear();
     return true;
+}
+
+bool mod_runtime_netplay_serialize_package(const std::string& package_id,
+                                           char* config, size_t config_cap) {
+    RuntimeMods& s = state();
+    if (!s.initialized || !config || config_cap < 2) return false;
+    config[0] = '\0';
+    const ModPackage* package = s.manager.selected_package(package_id);
+    if (!package) return false;
+    size_t o = 0;
+    for (const ModFeature& feature : package->features) {
+        if (feature.legacy || feature.hidden) continue;
+        if (!s.manager.feature_enabled(package_id, feature.id)) continue;
+        /* Emit "feature.option=value" for every option this feature owns that
+         * carries a resolved (non-default) value, then the bare feature token
+         * so apply_plan enables it even with all-default options. */
+        for (const ModOption& option : package->options) {
+            if (option.feature_id != feature.id) continue;
+            const std::string value =
+                s.manager.feature_option_value(package_id, feature.id, option.id);
+            if (value.empty() || value == option.default_value) continue;
+            int written = snprintf(config + o, config_cap > o ? config_cap - o : 0,
+                                   "%s%s.%s=%s", o ? ";" : "",
+                                   feature.id.c_str(), option.id.c_str(),
+                                   value.c_str());
+            if (written < 0 || (size_t)written >= (config_cap > o ? config_cap - o : 0))
+                return false;
+            o += (size_t)written;
+        }
+        int written = snprintf(config + o, config_cap > o ? config_cap - o : 0,
+                               "%s%s", o ? ";" : "", feature.id.c_str());
+        if (written < 0 || (size_t)written >= (config_cap > o ? config_cap - o : 0))
+            return false;
+        o += (size_t)written;
+    }
+    return o > 0;
+}
+
+int mod_runtime_netplay_fill_plan(void* plan, int plan_cap) {
+    RuntimeMods& s = state();
+    if (!s.initialized || !plan || plan_cap <= 0) return 0;
+    auto* out = static_cast<PsxLobbyPlanMod*>(plan);
+    const auto& packages = s.manager.packages();
+    int n = 0;
+    for (const auto& [id, versions] : packages) {
+        (void)versions;
+        if (n >= plan_cap) break;
+        const ModPackage* package = s.manager.selected_package(id);
+        if (!package || !package_has_enabled_feature(*package)) continue;
+        PsxLobbyPlanMod& mod = out[n];
+        memset(&mod, 0, sizeof(mod));
+        strncpy(mod.id, package->id.c_str(), sizeof(mod.id) - 1);
+        strncpy(mod.version, package->version.c_str(), sizeof(mod.version) - 1);
+        strncpy(mod.name, package->name.c_str(), sizeof(mod.name) - 1);
+        mod.builtin = package->origin == ModPackageOrigin::Bundled ? 1 : 0;
+        mod.size = 0;
+        char cfg[kNetplayPlanConfigCap];
+        if (mod_runtime_netplay_serialize_package(id, cfg, sizeof(cfg)))
+            strncpy(mod.config, cfg, sizeof(mod.config) - 1);
+        ++n;
+    }
+    return n;
+}
+
+int mod_runtime_netplay_package_installed(const char* id, const char* version) {
+    RuntimeMods& s = state();
+    if (!s.initialized || !id || !id[0]) return 0;
+    const ModPackage* package = s.manager.selected_package(id);
+    if (!package) return 0;
+    if (version && version[0] && package->version != version) return 0;
+    return 1;
+}
+
+bool mod_runtime_netplay_plan_applied(void) {
+    return state().netplay_plan_applied;
+}
+
+/* Serialize the guest's installed-package catalog into `out` as the lobby
+ * `mod_offer` object the server compares against match_caps.mods before
+ * seating: {"v":1,"pkgs":[{"id":..,"ver":..},…]}. Returns bytes written
+ * (0 = nothing installed / no provider). */
+size_t mod_runtime_netplay_offer_json(char* out, size_t out_cap) {
+    RuntimeMods& s = state();
+    if (!s.initialized || !out || out_cap < 16) return 0;
+    const auto& packages = s.manager.packages();
+    size_t o = 0;
+    int written = snprintf(out + o, out_cap - o, "{\"v\":1,\"pkgs\":[");
+    if (written < 0 || (size_t)written >= out_cap) return 0;
+    o += (size_t)written;
+    for (const auto& [id, versions] : packages) {
+        (void)versions;
+        const ModPackage* package = s.manager.selected_package(id);
+        if (!package) continue;
+        written = snprintf(out + o, out_cap - o,
+                           "%s{\"id\":\"%s\",\"ver\":\"%s\"}",
+                           o > 13 ? "," : "",
+                           package->id.c_str(), package->version.c_str());
+        if (written < 0 || (size_t)written >= out_cap - o) return 0;
+        o += (size_t)written;
+    }
+    if (o + 2 > out_cap) return 0;
+    out[o++] = ']';
+    out[o++] = '}';
+    out[o] = '\0';
+    return o > 13 ? o : 0;
+}
+
+bool mod_runtime_netplay_apply_plan(const void* plan, int count, int* missing,
+                                    const std::filesystem::path& disc_path,
+                                    std::string* error) {
+    RuntimeMods& s = state();
+    if (missing) *missing = 0;
+    if (!s.initialized) return true;
+    /* Empty plan = vanilla session: clear any prior in-session plan but keep
+     * the user's persisted offline selection intact. */
+    if (!plan || count <= 0)
+        return mod_runtime_clear_for_netplay(error) &&
+               mod_runtime_commit(disc_path, error);
+    const auto* entries = static_cast<const PsxLobbyPlanMod*>(plan);
+    const std::map<std::string, ModSelection> saved =
+        s.manager.selections_snapshot();
+    int miss = 0;
+    for (int i = 0; i < count; ++i) {
+        const PsxLobbyPlanMod& entry = entries[i];
+        if (!entry.id[0]) continue;
+        bool applied_any = false;
+        const char* cfg = entry.config;
+        while (cfg && *cfg) {
+            const char* sep = strchr(cfg, ';');
+            std::string token(cfg, sep ? (size_t)(sep - cfg) : strlen(cfg));
+            if (!token.empty()) {
+                const size_t dot = token.find('.');
+                const size_t eq = token.find('=');
+                if (dot != std::string::npos && eq != std::string::npos &&
+                    eq > dot + 1) {
+                    const std::string feature = token.substr(0, dot);
+                    const std::string option = token.substr(dot + 1, eq - dot - 1);
+                    const std::string value = token.substr(eq + 1);
+                    std::string opt_error;
+                    if (s.manager.set_feature_option(
+                            entry.id, feature, option, value, &opt_error)) {
+                        applied_any = true;
+                    }
+                } else if (dot == std::string::npos && eq == std::string::npos) {
+                    std::string feat_error;
+                    if (s.manager.set_feature_enabled(
+                            entry.id, token, true, &feat_error)) {
+                        applied_any = true;
+                    }
+                }
+            }
+            if (!sep) break;
+            cfg = sep + 1;
+        }
+        if (!applied_any && s.manager.selected_package(entry.id) == nullptr)
+            ++miss;
+    }
+    if (missing) *missing = miss;
+    s.transient_netplay = true;
+    bool ok = mod_runtime_commit(disc_path, error);
+    s.transient_netplay = false;
+    /* Restore the user's persisted selection in memory; the host plan stays
+     * applied in s.plan for this session but is never written to disk. */
+    s.manager.selections_restore(saved);
+    return ok;
 }
 
 const std::string& mod_runtime_fingerprint() {
