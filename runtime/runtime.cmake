@@ -1335,12 +1335,21 @@ function(psxrecomp_add_runtime_target target)
         set(mode_source ${PSXRECOMP_ROOT}/runtime/src/stub_interpreter.c)
     endif()
 
-    add_executable(${target}
-        ${PSXRECOMP_RUNTIME_SOURCES}
-        ${mode_source}
-        ${generated_sources}
-        ${PSXRT_EXTRAS_SOURCES}
-    )
+    if(ANDROID)
+        add_library(${target} SHARED
+            ${PSXRECOMP_RUNTIME_SOURCES}
+            ${mode_source}
+            ${generated_sources}
+            ${PSXRT_EXTRAS_SOURCES}
+        )
+    else()
+        add_executable(${target}
+            ${PSXRECOMP_RUNTIME_SOURCES}
+            ${mode_source}
+            ${generated_sources}
+            ${PSXRT_EXTRAS_SOURCES}
+        )
+    endif()
     target_link_libraries(${target} PRIVATE chdr-static)
     # audio_trace.c uses C11 atomics. Make the runtime's actual language
     # requirement explicit instead of relying on a parent project's global
@@ -1946,7 +1955,9 @@ function(psxrecomp_add_runtime_target target)
             target_link_libraries(${target} PRIVATE ${_psx_gl_target})
         else()
             # No recomp-ui checkout (PSX_RECOMP_UI=OFF): same resolution inline.
+            if(NOT ANDROID)
             find_package(OpenGL)
+        endif()
             if(TARGET OpenGL::GL)
                 target_link_libraries(${target} PRIVATE OpenGL::GL)
             elseif(TARGET OpenGL::OpenGL)

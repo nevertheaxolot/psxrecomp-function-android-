@@ -13235,7 +13235,7 @@ int main(int argc, char** argv) {
     }
     /* Lobby mod_offer: the guest's installed catalog, so the lobby server can
      * seat it against the host's match_caps.mods without a transfer. */
-    psx_lobby_set_mod_offer_builder(&PSXRecompV4::mod_runtime_netplay_offer_json);
+//     psx_lobby_set_mod_offer_builder(&PSXRecompV4::mod_runtime_netplay_offer_json);
 
 #if defined(RECOMP_LAUNCHER)
     launcher_boot_timing_mark("host:pre_overlay_worker");
@@ -14611,7 +14611,7 @@ session_reboot:
      * this aspect; native-wide fills it with a genuinely wider frame (no
      * stretch), squash mode stretches the 4:3 frame into it. */
     gl_renderer_set_display_aspect(g_video_aspect_num, g_video_aspect_den);
-    vk_renderer_set_display_aspect(g_video_aspect_num, g_video_aspect_den);
+//     vk_renderer_set_display_aspect(g_video_aspect_num, g_video_aspect_den);
     if (g_video_aspect_num * 3 != g_video_aspect_den * 4) {
         /* Hold widescreen off through the BIOS boot (authentic 4:3 logos);
          * the per-frame present path engages it at game entry. */
