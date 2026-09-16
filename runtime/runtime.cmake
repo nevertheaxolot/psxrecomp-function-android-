@@ -297,7 +297,7 @@ option(PSX_RECOMP_UI "Build the shared recomp-ui Dear ImGui launcher" ON)
 option(PSX_SHELLWIN_INTERP "Default the shell-window dirty-RAM interpreter to ON ( BIOS without shell seeds )" OFF)
 set(RECOMP_UI_ROOT "" CACHE PATH
     "Path to recomp-ui; empty = <game>/recomp-ui")
-if(PSX_RECOMP_UI AND (NOT RECOMP_UI_ROOT OR RECOMP_UI_ROOT STREQUAL ""))
+if(NOT ANDROID AND PSX_RECOMP_UI AND (NOT RECOMP_UI_ROOT OR RECOMP_UI_ROOT STREQUAL ""))
     if(EXISTS "${CMAKE_SOURCE_DIR}/recomp-ui/recomp_ui.cmake")
         set(RECOMP_UI_ROOT "${CMAKE_SOURCE_DIR}/recomp-ui" CACHE PATH
             "Path to recomp-ui; empty = <game>/recomp-ui" FORCE)
