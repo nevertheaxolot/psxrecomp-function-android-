@@ -106,6 +106,9 @@ extern "C" void psx_game_codegen_relaunch_or_exit(const char* disc_path);
 extern "C" void psx_game_codegen_forward_if_built(int argc, char** argv);
 #endif
 #include "psx_sdl.h"
+#if defined(__ANDROID__)
+#include <android/log.h>
+#endif
 #if defined(PSX_SDL3)
 /*
  * SDL_main.h is a single-header implementation in SDL3. Keep it in the one
@@ -12157,6 +12160,9 @@ int main(int argc, char** argv) {
     std::setvbuf(stderr, nullptr, _IOLBF, BUFSIZ);
     std::fprintf(stderr, "psxrecomp: main() entered\n");
     std::fflush(stderr);
+#if defined(__ANDROID__)
+    __android_log_print(ANDROID_LOG_INFO, "BR2Recomp", "psxrecomp main.cpp: main() entered (punto 1)");
+#endif
 #if defined(RECOMP_LAUNCHER)
     launcher_boot_timing_mark("host:main_enter");
 #endif
@@ -12165,6 +12171,9 @@ int main(int argc, char** argv) {
      * product binary under build-release/ (bios/, mods/, assets/, settings). */
 #if defined(PSX_HAS_CODEGEN_SETUP_HOST)
     psx_game_codegen_forward_if_built(argc, argv);
+#endif
+#if defined(__ANDROID__)
+    __android_log_print(ANDROID_LOG_INFO, "BR2Recomp", "psxrecomp main.cpp: paso el bloque PSX_HAS_CODEGEN_SETUP_HOST (punto 2)");
 #endif
 
     /* Install crash handlers early so they catch issues during init too.
@@ -12867,6 +12876,9 @@ int main(int argc, char** argv) {
         } catch (const std::exception& ex) {
             std::fprintf(stderr, "psxrecomp: failed to load --game %s: %s\n",
                          game_config_path, ex.what());
+#if defined(__ANDROID__)
+            __android_log_print(ANDROID_LOG_ERROR, "BR2Recomp", "psxrecomp main.cpp: EXCEPCION cargando game_config (punto 2b): %s", ex.what());
+#endif
             return 1;
         }
     }
@@ -14822,9 +14834,15 @@ session_reboot:
   }
 #endif
 
+#if defined(__ANDROID__)
+        __android_log_print(ANDROID_LOG_INFO, "BR2Recomp", "psxrecomp main.cpp: llegue al branch g_headless (punto 3), g_headless=%d", g_headless);
+#endif
   if (g_headless) {
     std::fprintf(stdout, "psxrecomp: headless frontend enabled\n");
   } else {
+#if defined(__ANDROID__)
+            __android_log_print(ANDROID_LOG_INFO, "BR2Recomp", "psxrecomp main.cpp: entrando al bloque SDL init real (punto 4)");
+#endif
     /* ---- SDL init ---- */
     /* Scale quality governs SDL's logical-size -> window scaling. Linear when
      * antialiasing is on so the (super)sampled frame stays smooth when the
