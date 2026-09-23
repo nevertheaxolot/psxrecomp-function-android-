@@ -13261,6 +13261,9 @@ int main(int argc, char** argv) {
             std::fprintf(stderr,
                 "psxrecomp: cannot create --memcard-dir %s: %s\n",
                 memcard_dir.string().c_str(), memcard_ec.message().c_str());
+#if defined(__ANDROID__)
+        __android_log_print(ANDROID_LOG_ERROR, "BR2Recomp", "psxrecomp main.cpp: FALLO create_directories memcard_dir vacio o invalido (punto memcard)");
+#endif
             return 1;
         }
         std::fprintf(stdout, "psxrecomp: CLI writable-state directory = %s\n",
