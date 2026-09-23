@@ -13855,12 +13855,12 @@ int main(int argc, char** argv) {
              * block grids reflect the actual on-disk saves (memcard_inspect). */
             {
                 std::string mc1 = seed.has_memcard1_path ? seed.memcard1_path.string()
-#if defined(__ANDROID__)
-    __android_log_print(ANDROID_LOG_INFO, "BR2Recomp", "psxrecomp main.cpp: marcador binario M39 (linea ~13738)");
-#endif
                                                          : (memcard_dir / "card1.mcd").string();
                 std::string mc2 = seed.has_memcard2_path ? seed.memcard2_path.string()
                                                          : (memcard_dir / "card2.mcd").string();
+#if defined(__ANDROID__)
+    __android_log_print(ANDROID_LOG_INFO, "BR2Recomp", "psxrecomp main.cpp: marcador binario M39 (linea ~13738)");
+#endif
                 std::snprintf(ls.memcard_path[0], sizeof(ls.memcard_path[0]), "%s", mc1.c_str());
                 std::snprintf(ls.memcard_path[1], sizeof(ls.memcard_path[1]), "%s", mc2.c_str());
             }
