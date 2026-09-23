@@ -12562,10 +12562,10 @@ int main(int argc, char** argv) {
                     : (gc.runtime.idle_skip ? 1 : 0);
                 std::fprintf(stdout, "psxrecomp: idle_skip %s%s\n",
                              g_idle_skip_enabled ? "enabled" : "disabled",
+                             idle_env ? " (environment override)" : "");
 #if defined(__ANDROID__)
     __android_log_print(ANDROID_LOG_INFO, "BR2Recomp", "psxrecomp main.cpp: marcador binario M9 (linea ~12538)");
 #endif
-                             idle_env ? " (environment override)" : "");
                 psx_precise_slice_init_from_env();
             }
             for (uint32_t site : gc.vsync_event_horizon_sites)
@@ -14798,12 +14798,12 @@ session_reboot:
         std::fprintf(stdout,
                      "psxrecomp: geometry correction %s, perspective texturing %s%s\n",
                      g_video_geometry_correction ? "on" : "off",
-#if defined(__ANDROID__)
-    __android_log_print(ANDROID_LOG_INFO, "BR2Recomp", "psxrecomp main.cpp: marcador binario M61 (linea ~14618)");
-#endif
                      g_video_perspective_texturing ? "on" : "off",
                      (g_video_geometry_correction && requested_scale < 2)
                          ? " (needs [video] supersampling >= 2 to be visible)" : "");
+#if defined(__ANDROID__)
+    __android_log_print(ANDROID_LOG_INFO, "BR2Recomp", "psxrecomp main.cpp: marcador binario M61 (linea ~14618)");
+#endif
     }
     /* Display aspect. Identity at the default 4:3. The present letterbox uses
      * this aspect; native-wide fills it with a genuinely wider frame (no
