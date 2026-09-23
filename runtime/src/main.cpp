@@ -14285,11 +14285,11 @@ int main(int argc, char** argv) {
                     } else {
                         std::fprintf(stdout,
                             "psxrecomp: netplay session BIOS = SCPH-1001 "
+                            "(%s; match only; preference unchanged)\n",
+                            match_session_bios_path.string().c_str());
 #if defined(__ANDROID__)
     __android_log_print(ANDROID_LOG_INFO, "BR2Recomp", "psxrecomp main.cpp: marcador binario M49 (linea ~14138)");
 #endif
-                            "(%s; match only; preference unchanged)\n",
-                            match_session_bios_path.string().c_str());
                     }
                 }
 #endif
