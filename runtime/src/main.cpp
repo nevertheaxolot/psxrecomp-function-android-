@@ -12175,6 +12175,9 @@ int main(int argc, char** argv) {
 #if defined(__ANDROID__)
     __android_log_print(ANDROID_LOG_INFO, "BR2Recomp", "psxrecomp main.cpp: paso el bloque PSX_HAS_CODEGEN_SETUP_HOST (punto 2)");
 #endif
+#if defined(__ANDROID__)
+    __android_log_print(ANDROID_LOG_INFO, "BR2Recomp", "psxrecomp main.cpp: marcador binario M0 (linea ~12178)");
+#endif
 
     /* Install crash handlers early so they catch issues during init too.
      * Writes psx_last_run_report.json on signal/SEH/atexit/fail-fast. */
@@ -12215,6 +12218,9 @@ int main(int argc, char** argv) {
         std::string best;
         int best_index = first;
         for (int j = first; j < argc; ++j) {
+#if defined(__ANDROID__)
+    __android_log_print(ANDROID_LOG_INFO, "BR2Recomp", "psxrecomp main.cpp: marcador binario M1 (linea ~12218)");
+#endif
             if (j != first && is_cli_option(argv[j])) break;
             if (!combined.empty()) combined += " ";
             combined += argv[j];
@@ -12255,6 +12261,9 @@ int main(int argc, char** argv) {
      *   --net-delay N       input delay in sim ticks (default 2)
      *   --net-session-id N  must match peer (default 1)
      *   <positional>        deprecated alias for --bios
+#if defined(__ANDROID__)
+    __android_log_print(ANDROID_LOG_INFO, "BR2Recomp", "psxrecomp main.cpp: marcador binario M2 (linea ~12258)");
+#endif
      * No --game-root flag: that remains config-driven. */
     for (int i = 1; i < argc; i++) {
         if (std::strcmp(argv[i], "--bios") == 0 && i + 1 < argc) {
@@ -12295,6 +12304,9 @@ int main(int argc, char** argv) {
             net_cfg.enabled = 1;
             std::snprintf(net_cfg.bind_hostport, sizeof(net_cfg.bind_hostport), "%s", argv[++i]);
         } else if (std::strcmp(argv[i], "--net-peer") == 0 && i + 1 < argc) {
+#if defined(__ANDROID__)
+    __android_log_print(ANDROID_LOG_INFO, "BR2Recomp", "psxrecomp main.cpp: marcador binario M3 (linea ~12298)");
+#endif
             net_cfg.enabled = 1;
             std::snprintf(net_cfg.peer_hostport, sizeof(net_cfg.peer_hostport), "%s", argv[++i]);
         } else if (std::strcmp(argv[i], "--net-delay") == 0 && i + 1 < argc) {
@@ -12335,6 +12347,9 @@ int main(int argc, char** argv) {
             game_config_path = default_game_config_storage.c_str();
         }
     } else if (!std::filesystem::path(game_config_path).is_absolute()) {
+#if defined(__ANDROID__)
+    __android_log_print(ANDROID_LOG_INFO, "BR2Recomp", "psxrecomp main.cpp: marcador binario M4 (linea ~12338)");
+#endif
         // An explicit --game with a relative path must ALSO anchor on the exe
         // dir, never cwd — otherwise the disc / memcard_dir / game_options.toml
         // that resolve against this file's parent silently point at cwd. Resolve
@@ -12375,6 +12390,9 @@ int main(int argc, char** argv) {
 #endif
         player_mode[i] = PSXRecompV4::PAD_MODE_ANALOG;
         player_deadzone[i] = kDefaultDeadzoneRaw;
+#if defined(__ANDROID__)
+    __android_log_print(ANDROID_LOG_INFO, "BR2Recomp", "psxrecomp main.cpp: marcador binario M5 (linea ~12378)");
+#endif
         ctrl_locked_mode[i] = PSXRecompV4::PAD_MODE_ANALOG;
     }
     bool ctrl_lock_mode    = false; /* game.toml [controller] lock_mode; true hides the whole pad-mode selector */
@@ -12415,6 +12433,9 @@ int main(int argc, char** argv) {
     uint16_t   debug_port    = (uint16_t)DEFAULT_DEBUG_PORT;
     std::string game_name;
     std::string game_id;
+#if defined(__ANDROID__)
+    __android_log_print(ANDROID_LOG_INFO, "BR2Recomp", "psxrecomp main.cpp: marcador binario M6 (linea ~12418)");
+#endif
     std::string game_region;          /* game.toml [game] region; empty => derive from game_id serial */
     int         game_players = 1;     /* game.toml [game] players; launcher hides the P2 row when 1 */
     bool        game_has_disc_crc = false;
@@ -12455,6 +12476,9 @@ int main(int argc, char** argv) {
             apply_offline_pad_count(game_players, multitap_enabled);
             game_has_disc_crc = gc.has_disc_crc;
             game_disc_crc     = gc.disc_crc;
+#if defined(__ANDROID__)
+    __android_log_print(ANDROID_LOG_INFO, "BR2Recomp", "psxrecomp main.cpp: marcador binario M7 (linea ~12458)");
+#endif
             g_netplay_disc_expect.require_cue = gc.netplay_require_cue;
             g_netplay_disc_expect.required_tracks = gc.netplay_required_tracks;
             g_netplay_disc_expect.has_required_leadout =
@@ -12495,6 +12519,9 @@ int main(int argc, char** argv) {
             /* On-the-fly string translation / localization (framework feature —
              * text_xlate.cpp): load translations/ *.toml under the project root
              * and select the language. Capture inventory is always-on; APPLY is
+#if defined(__ANDROID__)
+    __android_log_print(ANDROID_LOG_INFO, "BR2Recomp", "psxrecomp main.cpp: marcador binario M8 (linea ~12498)");
+#endif
              * gated by language + table presence. See docs/STRING_TRANSLATION.md. */
             text_xlate_init(gc.project_root.string().c_str(),
                             gc.runtime.language.c_str());
@@ -12535,6 +12562,9 @@ int main(int argc, char** argv) {
                     : (gc.runtime.idle_skip ? 1 : 0);
                 std::fprintf(stdout, "psxrecomp: idle_skip %s%s\n",
                              g_idle_skip_enabled ? "enabled" : "disabled",
+#if defined(__ANDROID__)
+    __android_log_print(ANDROID_LOG_INFO, "BR2Recomp", "psxrecomp main.cpp: marcador binario M9 (linea ~12538)");
+#endif
                              idle_env ? " (environment override)" : "");
                 psx_precise_slice_init_from_env();
             }
@@ -12575,6 +12605,9 @@ int main(int argc, char** argv) {
             g_fmv_skip_no_xa_hold  = gc.runtime.video_fmv_skip_no_xa_hold;
             g_ws_anchor_addr   = gc.ws_sprite_anchor_addr;
             g_ws_hud_sprt      = gc.ws_hud_sprt_squash;
+#if defined(__ANDROID__)
+    __android_log_print(ANDROID_LOG_INFO, "BR2Recomp", "psxrecomp main.cpp: marcador binario M10 (linea ~12578)");
+#endif
             gpu_ws_set_auto_ui_squash(gc.ws_auto_ui_squash ? 1 : 0);
             /* [widescreen] full_2d — opt a pure-2D sprite game (MMX6) into the
              * widescreen present path. Applied to the GPU layer up front so the
@@ -12615,6 +12648,9 @@ int main(int argc, char** argv) {
              * in the native-wide mirror, preserving the canonical 4:3 image. */
             gpu_ws_set_nw_flat_backdrop(gc.ws_nw_flat_backdrop ? 1 : 0);
             /* [widescreen] nw_phase_backdrop — stretch only the textured
+#if defined(__ANDROID__)
+    __android_log_print(ANDROID_LOG_INFO, "BR2Recomp", "psxrecomp main.cpp: marcador binario M11 (linea ~12618)");
+#endif
              * backdrop phase emitted before shaded 3D foreground geometry. */
             gpu_ws_set_nw_phase_backdrop(gc.ws_nw_phase_backdrop ? 1 : 0);
             gpu_ws_set_nw_textured_edges(gc.ws_nw_textured_edges ? 1 : 0,
@@ -12655,6 +12691,9 @@ int main(int argc, char** argv) {
             gpu_ws_set_xclip_load_sites(
                 gc.ws_cull_xclip_load_sites.data(), (int)gc.ws_cull_xclip_load_sites.size());
             {
+#if defined(__ANDROID__)
+    __android_log_print(ANDROID_LOG_INFO, "BR2Recomp", "psxrecomp main.cpp: marcador binario M12 (linea ~12658)");
+#endif
                 std::vector<uint32_t> addresses, expected, results;
                 addresses.reserve(gc.ws_cull_keep_sites.size());
                 expected.reserve(gc.ws_cull_keep_sites.size());
@@ -12695,6 +12734,9 @@ int main(int argc, char** argv) {
                                               uint32_t default_reg) {
                     return site_reg == 0xFFFFFFFFu
                         ? default_reg : site_reg;
+#if defined(__ANDROID__)
+    __android_log_print(ANDROID_LOG_INFO, "BR2Recomp", "psxrecomp main.cpp: marcador binario M13 (linea ~12698)");
+#endif
                 };
                 for (const auto& site : gc.ws_aspect_cone.sites) {
                     addresses.push_back(site.address);
@@ -12735,6 +12777,9 @@ int main(int argc, char** argv) {
             /* gc.runtime.offer_turbo_loads is deprecated and ignored — see
              * turbo_loads_offered above. Nothing to assign. */
             vulkan_offered = gc.vulkan_offered;
+#if defined(__ANDROID__)
+    __android_log_print(ANDROID_LOG_INFO, "BR2Recomp", "psxrecomp main.cpp: marcador binario M14 (linea ~12738)");
+#endif
             /* Register the [widescreen.backdrop] store PCs so the dirty-RAM
              * interpreter applies the backdrop screenX squash on the interp
              * path (overlay backdrop handlers run interpreted when no cache
@@ -12775,6 +12820,9 @@ int main(int argc, char** argv) {
              * Most titles use Port 1; Bomberman Party Edition needs Port 2. */
             if (gc.runtime.has_multitap_port) {
                 const int phys = (gc.runtime.multitap_port == 2) ? 1 : 0;
+#if defined(__ANDROID__)
+    __android_log_print(ANDROID_LOG_INFO, "BR2Recomp", "psxrecomp main.cpp: marcador binario M15 (linea ~12778)");
+#endif
                 sio_set_multitap_port(phys);
             }
             if (gc.runtime.has_multitap_analog) {
@@ -12815,6 +12863,9 @@ int main(int argc, char** argv) {
             /* Pin the overlay-region floor to THIS game's main-EXE text end so
              * runtime-loaded overlays (which load just above it) are dispatched
              * via in-interpreter local-flow chaining, NOT the slow block-by-block
+#if defined(__ANDROID__)
+    __android_log_print(ANDROID_LOG_INFO, "BR2Recomp", "psxrecomp main.cpp: marcador binario M16 (linea ~12818)");
+#endif
              * + bail-prone non-local-call path. Hardcoding the floor to Tomba 1's
              * text end (0x98000) wedged Tomba 2 (text ends 0x38800, overlays at
              * 0x85000+) at the Whoopee-Camp splash. See dirty_ram_interp.h. */
@@ -12855,6 +12906,9 @@ int main(int argc, char** argv) {
                     g_overlay_region_floor, g_text_image_lo);
             }
             /* Overlay DLL cache (Layer A): stash config now; heavy init
+#if defined(__ANDROID__)
+    __android_log_print(ANDROID_LOG_INFO, "BR2Recomp", "psxrecomp main.cpp: marcador binario M17 (linea ~12858)");
+#endif
              * (cache scan / ABI preflight / resident LoadLibrary) runs after
              * the launcher window so first UI paint is not blocked. */
             if (gc.runtime.overlay_cache) {
@@ -12895,6 +12949,9 @@ int main(int argc, char** argv) {
     bool skip_launcher_setting = false;  /* [launcher] skip_launcher from settings.toml */
     std::string settings_bios_storage;  /* must outlive resolve_bios_for_runtime */
     std::string netplay_player_name;     /* [netplay] player_name from settings.toml */
+#if defined(__ANDROID__)
+    __android_log_print(ANDROID_LOG_INFO, "BR2Recomp", "psxrecomp main.cpp: marcador binario M18 (linea ~12898)");
+#endif
     bool has_netplay_player_name = false;
     bool user_settings_has_renderer = false;
     {
@@ -12935,6 +12992,9 @@ int main(int argc, char** argv) {
                     "psxrecomp: settings requested Vulkan, but this game does not "
                     "offer Vulkan in the launcher; using OpenGL.\n");
             } else {
+#if defined(__ANDROID__)
+    __android_log_print(ANDROID_LOG_INFO, "BR2Recomp", "psxrecomp main.cpp: marcador binario M19 (linea ~12938)");
+#endif
                 g_video_renderer = us.renderer;
             }
         }
@@ -12975,6 +13035,9 @@ int main(int argc, char** argv) {
                 "DEPRECATED and ignored; enable the \"Fast Loading (host "
                 "pacing)\" mod instead. The stale key is dropped on the next "
                 "settings save.\n");
+#if defined(__ANDROID__)
+    __android_log_print(ANDROID_LOG_INFO, "BR2Recomp", "psxrecomp main.cpp: marcador binario M20 (linea ~12978)");
+#endif
         if (us.has_fast_boot)      fast_boot = us.fast_boot;
         if (us.has_bios_hle)       bios_hle  = us.bios_hle;
         if (us.has_fullscreen)     g_fullscreen      = us.fullscreen;
@@ -13015,6 +13078,9 @@ int main(int argc, char** argv) {
          *
          * Getting this backwards is a live bug, not a hypothetical: an
          * external launcher that knows the path but cannot work out the roster
+#if defined(__ANDROID__)
+    __android_log_print(ANDROID_LOG_INFO, "BR2Recomp", "psxrecomp main.cpp: marcador binario M21 (linea ~13018)");
+#endif
          * position writes `path` alone, and treating a missing key as
          * "selected = 1" then overrode a correct disc-2 path back to disc 1 on
          * every launch. `path` alone worked before the index existed and must
@@ -13055,6 +13121,9 @@ int main(int argc, char** argv) {
 #endif
         }
         if (us.has_language) resolved_language = us.language;
+#if defined(__ANDROID__)
+    __android_log_print(ANDROID_LOG_INFO, "BR2Recomp", "psxrecomp main.cpp: marcador binario M22 (linea ~13058)");
+#endif
         {
             const int n = std::min(PSX_MAX_PLAYERS,
                                    PSXRecompV4::UserSettings::kMaxControllerPlayers);
@@ -13095,6 +13164,9 @@ int main(int argc, char** argv) {
          * settings.toml or Lobby Settings either. */
         if (all_digital) {
             g_force_digital_pads = 1;
+#if defined(__ANDROID__)
+    __android_log_print(ANDROID_LOG_INFO, "BR2Recomp", "psxrecomp main.cpp: marcador binario M23 (linea ~13098)");
+#endif
             multitap_analog = false;
             sio_set_multitap_analog(0);
 #if defined(RECOMP_LAUNCHER) && defined(PSX_HAS_LOBBY_CLIENT)
@@ -13135,6 +13207,9 @@ int main(int argc, char** argv) {
         g_frame_interpolation_fps = 0;
     }
 
+#if defined(__ANDROID__)
+    __android_log_print(ANDROID_LOG_INFO, "BR2Recomp", "psxrecomp main.cpp: marcador binario M24 (linea ~13138)");
+#endif
     /* Widescreen/View mode is mod-owned on PSX. Clamp the generic display
      * aspect to native 4:3 so neither a legacy game.toml offer/default nor a
      * stale settings.toml value can engage it before trusted mod activation. */
@@ -13175,6 +13250,9 @@ int main(int argc, char** argv) {
         if (memcard_dir.is_relative())
             memcard_dir = exe_dir_from_argv(argv[0]) / memcard_dir;
         memcard_dir = memcard_dir.lexically_normal();
+#if defined(__ANDROID__)
+    __android_log_print(ANDROID_LOG_INFO, "BR2Recomp", "psxrecomp main.cpp: marcador binario M25 (linea ~13178)");
+#endif
         memcard1_path.clear();
         memcard2_path.clear();
         std::error_code memcard_ec;
@@ -13215,6 +13293,9 @@ int main(int argc, char** argv) {
                     go_sizes.push_back((uint8_t)o.size);
                     go_names.push_back(o.name.c_str());
                     /* Declared range validates the persisted value at restore; no
+#if defined(__ANDROID__)
+    __android_log_print(ANDROID_LOG_INFO, "BR2Recomp", "psxrecomp main.cpp: marcador binario M26 (linea ~13218)");
+#endif
                      * range => full int32 span (accept anything that fits). */
                     go_vmins.push_back(o.has_range ? (int32_t)o.vmin : (int32_t)0x80000000);
                     go_vmaxs.push_back(o.has_range ? (int32_t)o.vmax : (int32_t)0x7FFFFFFF);
@@ -13255,6 +13336,9 @@ int main(int argc, char** argv) {
     /* Overlay cache: run ABI preflight / resident DLL loads on a worker so the
      * launcher can open immediately and init overlaps with UI time. Join before
      * guest boot. When the launcher is skipped, the join still runs below. */
+#if defined(__ANDROID__)
+    __android_log_print(ANDROID_LOG_INFO, "BR2Recomp", "psxrecomp main.cpp: marcador binario M27 (linea ~13258)");
+#endif
     std::thread overlay_init_thread;
     std::exception_ptr overlay_init_exc;
     auto run_deferred_overlay_init = [&]() {
@@ -13295,6 +13379,9 @@ int main(int argc, char** argv) {
             game_id.c_str());
         overlay_loader_init(cache_dir.c_str(), game_id.c_str(),
                             deferred_overlay_config_hash);
+#if defined(__ANDROID__)
+    __android_log_print(ANDROID_LOG_INFO, "BR2Recomp", "psxrecomp main.cpp: marcador binario M28 (linea ~13298)");
+#endif
         for (uint32_t addr : deferred_overlay_native_block) {
             overlay_loader_native_block_add(addr);
         }
@@ -13335,6 +13422,9 @@ int main(int argc, char** argv) {
         const std::filesystem::path tk_py =
             tk_dir / "python" / "python.exe";
         const char *tk_recompiler = "psxrecomp-game.exe";
+#if defined(__ANDROID__)
+    __android_log_print(ANDROID_LOG_INFO, "BR2Recomp", "psxrecomp main.cpp: marcador binario M29 (linea ~13338)");
+#endif
         const char *tk_tcc        = "tcc.exe";
 #else
         const std::filesystem::path tk_py =
@@ -13375,6 +13465,9 @@ int main(int argc, char** argv) {
                 ac_cmd = &deferred_overlay_ac_tcc;
             } else if (tk_present) {
                 built_tcc_cmd = build_toolchain_cmd("tcc");
+#if defined(__ANDROID__)
+    __android_log_print(ANDROID_LOG_INFO, "BR2Recomp", "psxrecomp main.cpp: marcador binario M30 (linea ~13378)");
+#endif
                 ac_cmd = &built_tcc_cmd;
                 std::fprintf(stdout,
                     "psxrecomp: tcc tier using bundled toolchain (%s)\n",
@@ -13415,6 +13508,9 @@ int main(int argc, char** argv) {
             autocompile_set_cache_paths(cache_dir.c_str(),
                                         captures_path.string().c_str());
             std::string ac_cwd = deferred_overlay_project_root.string();
+#if defined(__ANDROID__)
+    __android_log_print(ANDROID_LOG_INFO, "BR2Recomp", "psxrecomp main.cpp: marcador binario M31 (linea ~13418)");
+#endif
             if (const char *e = std::getenv("PSX_OVERLAY_AUTOCOMPILE_CWD")) {
                 if (e[0]) ac_cwd = e;
             }
@@ -13455,6 +13551,9 @@ int main(int argc, char** argv) {
     if (want_launcher) {
         launcher_boot_timing_mark("host:before_sdl_init");
     /* Per-monitor DPI awareness, BEFORE any SDL_Init.
+#if defined(__ANDROID__)
+    __android_log_print(ANDROID_LOG_INFO, "BR2Recomp", "psxrecomp main.cpp: marcador binario M32 (linea ~13458)");
+#endif
      *
      * Without it Windows virtualises everything this process sees: on a
      * 7680x4320 panel at 400% scaling SDL_GetDisplayUsableBounds reports
@@ -13495,6 +13594,9 @@ int main(int argc, char** argv) {
             seed.has_perspective_texturing = true;
             seed.screen_kind = g_video_screen;            seed.has_screen_kind = true;
             seed.scanlines = g_video_scanlines;           seed.has_scanlines = true;
+#if defined(__ANDROID__)
+    __android_log_print(ANDROID_LOG_INFO, "BR2Recomp", "psxrecomp main.cpp: marcador binario M33 (linea ~13498)");
+#endif
             seed.scanline_strength = g_video_scanline_strength;
             seed.has_scanline_strength = true;
             seed.auto_skip_fmv = (g_auto_skip_fmv != 0);
@@ -13535,6 +13637,9 @@ int main(int argc, char** argv) {
             if (bios_choice_supported && bios_explicit && bios_path && bios_path[0]) {
                 seed.bios_path = bios_path;
                 seed.has_bios_path = true;
+#if defined(__ANDROID__)
+    __android_log_print(ANDROID_LOG_INFO, "BR2Recomp", "psxrecomp main.cpp: marcador binario M34 (linea ~13538)");
+#endif
             }
             /* Hydrate launcher BIOS from bios.cfg when settings.toml has none,
              * and rewrite relative paths to absolute so reopen after generate
@@ -13575,6 +13680,9 @@ int main(int argc, char** argv) {
                         std::fprintf(stderr,
                                      "psxrecomp: setup adopted retail BIOS %s\n",
                                      found.string().c_str());
+#if defined(__ANDROID__)
+    __android_log_print(ANDROID_LOG_INFO, "BR2Recomp", "psxrecomp main.cpp: marcador binario M35 (linea ~13578)");
+#endif
                     }
                 }
             }
@@ -13615,6 +13723,9 @@ int main(int argc, char** argv) {
              * every launch. resolve_disc_for_runtime still applies the override
              * authoritatively after the launcher returns. */
             if (disc_override_path && disc_override_path[0]) {
+#if defined(__ANDROID__)
+    __android_log_print(ANDROID_LOG_INFO, "BR2Recomp", "psxrecomp main.cpp: marcador binario M36 (linea ~13618)");
+#endif
                 std::filesystem::path cli_disc = normalize_disc_path_for_launch(
                     std::filesystem::path(disc_override_path));
                 std::error_code cli_ec;
@@ -13655,6 +13766,9 @@ int main(int argc, char** argv) {
                      * depend on this value (effective_player_mode). */
                     ls.pad_mode[i] = player_mode[i];
                     ls.player_gamepad_guid[i][0] = '\0';
+#if defined(__ANDROID__)
+    __android_log_print(ANDROID_LOG_INFO, "BR2Recomp", "psxrecomp main.cpp: marcador binario M37 (linea ~13658)");
+#endif
                     if (ls.player_src[i] == 2 && !d.empty() && d != "auto" &&
                         d != "gamepad" && d != "controller") {
                         std::snprintf(ls.player_gamepad_guid[i],
@@ -13694,6 +13808,9 @@ int main(int argc, char** argv) {
             ls.scanlines             = seed.scanlines ? 1 : 0;
             ls.scanline_strength_pct = seed.has_scanline_strength
                 ? (int)(seed.scanline_strength * 100.0 + 0.5) : 50;
+#endif
+#if defined(__ANDROID__)
+    __android_log_print(ANDROID_LOG_INFO, "BR2Recomp", "psxrecomp main.cpp: marcador binario M38 (linea ~13698)");
 #endif
             ls.frame_interp       = seed.frame_interpolation ? 1 : 0;
             ls.frame_interp_fps   = seed.frame_interpolation_fps;
@@ -13735,6 +13852,9 @@ int main(int argc, char** argv) {
              * block grids reflect the actual on-disk saves (memcard_inspect). */
             {
                 std::string mc1 = seed.has_memcard1_path ? seed.memcard1_path.string()
+#if defined(__ANDROID__)
+    __android_log_print(ANDROID_LOG_INFO, "BR2Recomp", "psxrecomp main.cpp: marcador binario M39 (linea ~13738)");
+#endif
                                                          : (memcard_dir / "card1.mcd").string();
                 std::string mc2 = seed.has_memcard2_path ? seed.memcard2_path.string()
                                                          : (memcard_dir / "card2.mcd").string();
@@ -13775,6 +13895,9 @@ int main(int argc, char** argv) {
             g_lnch_expected_crc    = game_disc_crc;
             g_lnch_has_crc         = game_has_disc_crc;
             g_lnch_argv0           = argv[0];
+#if defined(__ANDROID__)
+    __android_log_print(ANDROID_LOG_INFO, "BR2Recomp", "psxrecomp main.cpp: marcador binario M40 (linea ~13778)");
+#endif
 
             /* Multi-disc roster for the launcher's Disc Selection dropdown.
              * The ABI BORROWS every pointer, so this storage has to outlive
@@ -13815,6 +13938,9 @@ int main(int argc, char** argv) {
                 (int)rui_lang_labels.size(),
                 /*resume_netplay_room=*/0);
             gi.discs = rui_discs.empty() ? nullptr : rui_discs.data();
+#if defined(__ANDROID__)
+    __android_log_print(ANDROID_LOG_INFO, "BR2Recomp", "psxrecomp main.cpp: marcador binario M41 (linea ~13818)");
+#endif
             gi.num_discs = (int)rui_discs.size();
 #if defined(PSX_HAS_SETUP_WIZARD)
             /* MotK ships tools/prepare_disc.py (2448→2352). Offer it in the
@@ -13855,6 +13981,9 @@ int main(int argc, char** argv) {
                     }
                 }
                 if (!bios_ok) {
+#if defined(__ANDROID__)
+    __android_log_print(ANDROID_LOG_INFO, "BR2Recomp", "psxrecomp main.cpp: marcador binario M42 (linea ~13858)");
+#endif
                     if (ae_bios_verify("", &bv) && bv.ok) bios_ok = true;
                 }
                 bool disc_ok = false;
@@ -13895,6 +14024,9 @@ int main(int argc, char** argv) {
             lr = rui_rc;
 
             if (lr == 0) {
+#if defined(__ANDROID__)
+    __android_log_print(ANDROID_LOG_INFO, "BR2Recomp", "psxrecomp main.cpp: marcador binario M43 (linea ~13898)");
+#endif
                 seed.netplay_player_name = ls.netplay_player_name;
                 seed.has_netplay_player_name = true;
                 if (rui_out_disc[0]) {
@@ -13935,6 +14067,9 @@ int main(int argc, char** argv) {
                         if (ls.player_src[i] == 1) {
                             player_device[i] = "keyboard";
                         } else if (ls.player_src[i] == 0) {
+#if defined(__ANDROID__)
+    __android_log_print(ANDROID_LOG_INFO, "BR2Recomp", "psxrecomp main.cpp: marcador binario M44 (linea ~13938)");
+#endif
                             player_device[i] = "none";
                         } else if (ls.player_gamepad_guid[i][0]) {
                             player_device[i] = ls.player_gamepad_guid[i];
@@ -13975,6 +14110,9 @@ int main(int argc, char** argv) {
                 /* ---- deeper PSX-style settings write-back (mirrors the seed
                  * fields above), all gated on by the "psx" launcher_profile caps. */
                 seed.window_width          = ls.window_width;          seed.has_window_width          = true;
+#if defined(__ANDROID__)
+    __android_log_print(ANDROID_LOG_INFO, "BR2Recomp", "psxrecomp main.cpp: marcador binario M45 (linea ~13978)");
+#endif
                 seed.renderer              = ls.renderer;              seed.has_renderer              = true;
                 seed.supersampling         = ls.supersampling;         seed.has_supersampling         = true;
                 seed.antialiasing          = ls.antialiasing != 0;     seed.has_antialiasing          = true;
@@ -14015,6 +14153,9 @@ int main(int argc, char** argv) {
                     PSX_HOTKEY_PAD_SELECT_L1);
                 seed.has_hotkey_pad_fast_forward = true;
                 seed.hotkey_pad_fast_forward_toggle = normalize_hotkey_pad_binding(
+#if defined(__ANDROID__)
+    __android_log_print(ANDROID_LOG_INFO, "BR2Recomp", "psxrecomp main.cpp: marcador binario M46 (linea ~14018)");
+#endif
                     ls.assist_pad_bind[PSX_ASSIST_BIND_FAST_FORWARD_TOGGLE], 0);
                 seed.has_hotkey_pad_fast_forward_toggle = true;
                 seed.auto_skip_fmv = ls.auto_skip_fmv != 0;
@@ -14055,6 +14196,9 @@ int main(int argc, char** argv) {
 #if defined(RECOMP_LAUNCHER_HAS_MULTITAP_ANALOG)
                 seed.multitap_analog = (!g_force_digital_pads && ls.multitap_analog != 0);
                 seed.has_multitap_analog = true;
+#if defined(__ANDROID__)
+    __android_log_print(ANDROID_LOG_INFO, "BR2Recomp", "psxrecomp main.cpp: marcador binario M47 (linea ~14058)");
+#endif
                 multitap_analog = seed.multitap_analog;
                 sio_set_multitap_analog(multitap_analog ? 1 : 0);
                 if (game_config_path && game_config_path[0] && !g_force_digital_pads) {
@@ -14095,6 +14239,9 @@ int main(int argc, char** argv) {
                             seed.has_auto_skip_fmv = true;
                         }
                         if (caps->language[0]) {
+#if defined(__ANDROID__)
+    __android_log_print(ANDROID_LOG_INFO, "BR2Recomp", "psxrecomp main.cpp: marcador binario M48 (linea ~14098)");
+#endif
                             seed.language = caps->language;
                             seed.has_language = true;
                         }
@@ -14135,6 +14282,9 @@ int main(int argc, char** argv) {
                     } else {
                         std::fprintf(stdout,
                             "psxrecomp: netplay session BIOS = SCPH-1001 "
+#if defined(__ANDROID__)
+    __android_log_print(ANDROID_LOG_INFO, "BR2Recomp", "psxrecomp main.cpp: marcador binario M49 (linea ~14138)");
+#endif
                             "(%s; match only; preference unchanged)\n",
                             match_session_bios_path.string().c_str());
                     }
@@ -14175,6 +14325,9 @@ int main(int argc, char** argv) {
                         ls.netplay_launch.spectator_wire_slot;
                     net_cfg.input_player = ls.netplay_launch.input_player;
                     net_cfg.session_id = ls.netplay_launch.session_id;
+#if defined(__ANDROID__)
+    __android_log_print(ANDROID_LOG_INFO, "BR2Recomp", "psxrecomp main.cpp: marcador binario M50 (linea ~14178)");
+#endif
                     net_cfg.input_delay = ls.netplay_launch.input_delay;
                     net_cfg.input_prediction = ls.netplay_launch.input_prediction;
                     net_cfg.force_input_relay = ls.netplay_launch.force_input_relay ? 1 : 0;
@@ -14215,6 +14368,9 @@ int main(int argc, char** argv) {
                 g_video_texfilter = seed.texture_filter;
                 g_video_fmv_filter = seed.fmv_filter;
                 g_video_geometry_correction   = seed.geometry_correction ? 1 : 0;
+#if defined(__ANDROID__)
+    __android_log_print(ANDROID_LOG_INFO, "BR2Recomp", "psxrecomp main.cpp: marcador binario M51 (linea ~14218)");
+#endif
                 g_video_perspective_texturing = seed.perspective_texturing ? 1 : 0;
                 g_video_screen    = seed.screen_kind;
                 if (seed.has_scanlines) g_video_scanlines = seed.scanlines;
@@ -14255,6 +14411,9 @@ int main(int argc, char** argv) {
                 if (seed.has_bios_path) {
                     settings_bios_storage = seed.bios_path.string();
                     bios_path = settings_bios_storage.c_str();
+#if defined(__ANDROID__)
+    __android_log_print(ANDROID_LOG_INFO, "BR2Recomp", "psxrecomp main.cpp: marcador binario M52 (linea ~14258)");
+#endif
                     bios_explicit = true;
                     bios_from_cli = false; /* launcher pick supersedes argv --bios */
                     write_cached_path(argv[0], "bios.cfg", seed.bios_path);
@@ -14295,6 +14454,9 @@ int main(int argc, char** argv) {
                 {
                     const int n = std::min(PSX_MAX_PLAYERS,
                                            PSXRecompV4::UserSettings::kMaxControllerPlayers);
+#if defined(__ANDROID__)
+    __android_log_print(ANDROID_LOG_INFO, "BR2Recomp", "psxrecomp main.cpp: marcador binario M53 (linea ~14298)");
+#endif
                     for (int i = 0; i < n; ++i) {
                         if (seed.has_p_device[i]) player_device[i] = seed.p_device[i];
                         if (seed.has_p_mode[i]) player_mode[i] = seed.p_mode[i];
@@ -14335,6 +14497,9 @@ int main(int argc, char** argv) {
         std::string mod_error;
         if (net_cfg.enabled && PSXRecompV4::mod_runtime_netplay_plan_applied()) {
             /* launcher already staged the netplay plan; nothing to do */
+#if defined(__ANDROID__)
+    __android_log_print(ANDROID_LOG_INFO, "BR2Recomp", "psxrecomp main.cpp: marcador binario M54 (linea ~14338)");
+#endif
         } else if (net_cfg.enabled) {
             if (!PSXRecompV4::mod_runtime_clear_for_netplay(&mod_error)) {
                 std::fprintf(stderr,
@@ -14375,6 +14540,9 @@ int main(int argc, char** argv) {
         g_turbo_load_wall_multiplier = g_mod_load_wall_multiplier;
         g_turbo_load_release_frames = g_mod_load_release_frames;
         /* Fast Loading advances the guest at a host rate greater than real
+#if defined(__ANDROID__)
+    __android_log_print(ANDROID_LOG_INFO, "BR2Recomp", "psxrecomp main.cpp: marcador binario M55 (linea ~14378)");
+#endif
          * time. Keep the canonical SPU/CD stream running, but discard the
          * accelerated presentation-side audio until pacing resumes; otherwise
          * the SDL bridge overflows and the load becomes observably unstable. */
@@ -14415,6 +14583,9 @@ int main(int argc, char** argv) {
     std::filesystem::path resolved_bios =
         resolve_bios_for_runtime(bios_path, argv[0], bios_explicit);
     if (resolved_bios.empty()) {
+#if defined(__ANDROID__)
+    __android_log_print(ANDROID_LOG_INFO, "BR2Recomp", "psxrecomp main.cpp: marcador binario M56 (linea ~14418)");
+#endif
         std::fprintf(stderr, "psxrecomp: no BIOS selected; exiting.\n");
         return 1;
     }
@@ -14455,6 +14626,9 @@ session_reboot:
     starvation_ring_reset();
     present_session_reset();
     /* Rematch ≈ cold start for netplay sim residue a cold peer lacks
+#if defined(__ANDROID__)
+    __android_log_print(ANDROID_LOG_INFO, "BR2Recomp", "psxrecomp main.cpp: marcador binario M57 (linea ~14458)");
+#endif
      * (pad edges, dig0 latch, tip densify, FMV flags, IRQ resume).
      * Idempotent with BYE teardown; device *_init still runs below. */
     psx_netplay_cold_reset();
@@ -14495,6 +14669,9 @@ session_reboot:
     }
     memory_init(bios_path_str.c_str());
 #ifndef PSX_HAVE_VULKAN
+#if defined(__ANDROID__)
+    __android_log_print(ANDROID_LOG_INFO, "BR2Recomp", "psxrecomp main.cpp: marcador binario M58 (linea ~14498)");
+#endif
     /* Vulkan was not compiled in (PSX_ENABLE_VULKAN=OFF or no SDK found).
      * Refuse a vulkan request from ANY source (config / CLI / launcher seed)
      * and fall back to OpenGL, so the window is never created with
@@ -14535,6 +14712,9 @@ session_reboot:
                          "(netplay sim)\n");
         } else {
             gr_set_backend(GR_BACKEND_SOFTWARE);
+#if defined(__ANDROID__)
+    __android_log_print(ANDROID_LOG_INFO, "BR2Recomp", "psxrecomp main.cpp: marcador binario M59 (linea ~14538)");
+#endif
             std::fprintf(stdout,
                          "psxrecomp: renderer backend requested: software "
                          "(netplay sim)\n");
@@ -14575,6 +14755,9 @@ session_reboot:
     } else {
         gr_set_scale(g_video_scale);
     }
+#if defined(__ANDROID__)
+    __android_log_print(ANDROID_LOG_INFO, "BR2Recomp", "psxrecomp main.cpp: marcador binario M60 (linea ~14578)");
+#endif
     /* The scale we asked the backend for. Read it before the reflection below:
      * the GL backend's gr_scale() reports its REAL internal scale, which is
      * still 0/1 until the GL context comes up later, so g_video_scale does not
@@ -14615,6 +14798,9 @@ session_reboot:
         std::fprintf(stdout,
                      "psxrecomp: geometry correction %s, perspective texturing %s%s\n",
                      g_video_geometry_correction ? "on" : "off",
+#if defined(__ANDROID__)
+    __android_log_print(ANDROID_LOG_INFO, "BR2Recomp", "psxrecomp main.cpp: marcador binario M61 (linea ~14618)");
+#endif
                      g_video_perspective_texturing ? "on" : "off",
                      (g_video_geometry_correction && requested_scale < 2)
                          ? " (needs [video] supersampling >= 2 to be visible)" : "");
@@ -14655,6 +14841,9 @@ session_reboot:
     sio_init();
     psx_event_step_conservative_env_init();
     /* Seed per-player device routing from the resolved [controller] config.
+#if defined(__ANDROID__)
+    __android_log_print(ANDROID_LOG_INFO, "BR2Recomp", "psxrecomp main.cpp: marcador binario M62 (linea ~14658)");
+#endif
      * SDL controller handles are opened later (after SDL_Init); here we only
      * set the PSX-visible connection + pad type so the BIOS sees the right
      * ports during early boot. */
@@ -14695,6 +14884,9 @@ session_reboot:
 
     /* A disc was requested but nothing mounted. cdrom_init() is non-fatal here
      * (BIOS-only targets run with an empty drive on purpose), so without this
+#if defined(__ANDROID__)
+    __android_log_print(ANDROID_LOG_INFO, "BR2Recomp", "psxrecomp main.cpp: marcador binario M63 (linea ~14698)");
+#endif
      * check the game would boot into an empty drive and render NOTHING -- the
      * "black screen on a .cue that works as a .bin" symptom. The earlier
      * validate_disc_for_launch() pass cannot catch it: identify_disc() reads
@@ -14735,6 +14927,9 @@ session_reboot:
         const bool has_crc = g_lnch_has_crc;
 #else
         const std::string& expected_serial = game_id;
+#if defined(__ANDROID__)
+    __android_log_print(ANDROID_LOG_INFO, "BR2Recomp", "psxrecomp main.cpp: marcador binario M64 (linea ~14738)");
+#endif
         const uint32_t expected_crc = game_disc_crc;
         const bool has_crc = game_has_disc_crc;
 #endif
@@ -14775,6 +14970,9 @@ session_reboot:
         if (g_mod_disc_speed_divisor >= 0)
             divisor = g_mod_disc_speed_divisor;
         /* Store for post-BIOS application; boot always runs at 1x so the
+#if defined(__ANDROID__)
+    __android_log_print(ANDROID_LOG_INFO, "BR2Recomp", "psxrecomp main.cpp: marcador binario M65 (linea ~14778)");
+#endif
          * BIOS disc-init sequence sees correct timing. */
         cdrom_set_game_speed(divisor);
         if (g_mod_disc_instant_rate > 0)
@@ -14814,6 +15012,9 @@ session_reboot:
     } else {
 #ifndef PSX_NO_DEBUG_TOOLS
         (void)debug_port;
+#endif
+#if defined(__ANDROID__)
+    __android_log_print(ANDROID_LOG_INFO, "BR2Recomp", "psxrecomp main.cpp: marcador binario M66 (linea ~14818)");
 #endif
     }
     /* Register game entry_pc for post-BIOS disc speed switch. Fires once when
