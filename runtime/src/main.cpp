@@ -14522,6 +14522,9 @@ int main(int argc, char** argv) {
         } else if (!PSXRecompV4::mod_runtime_commit(resolved_disc, &mod_error)) {
             std::fprintf(stderr, "psxrecomp: cannot launch with selected mods: %s\n",
                          mod_error.c_str());
+#if defined(__ANDROID__)
+        __android_log_print(ANDROID_LOG_ERROR, "BR2Recomp", "psxrecomp main.cpp: FALLO mod_runtime_commit: %s", mod_error.c_str());
+#endif
             return 1;
         }
     }
