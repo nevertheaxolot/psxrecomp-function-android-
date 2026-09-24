@@ -14484,6 +14484,9 @@ int main(int argc, char** argv) {
             } catch (const std::exception& ex) {
                 std::fprintf(stderr, "psxrecomp: overlay cache init failed: %s\n",
                              ex.what());
+#if defined(__ANDROID__)
+        __android_log_print(ANDROID_LOG_ERROR, "BR2Recomp", "psxrecomp main.cpp: EXCEPCION overlay_init_thread (punto overlay): %s", ex.what());
+#endif
                 return 1;
             }
         }
