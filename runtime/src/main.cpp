@@ -14586,8 +14586,14 @@ int main(int argc, char** argv) {
         memcard2_path.clear();
     }
 
+#if defined(__ANDROID__)
+    __android_log_print(ANDROID_LOG_INFO, "BR2Recomp", "psxrecomp main.cpp: CHECKPOINT antes de resolve_bios_for_runtime");
+#endif
     std::filesystem::path resolved_bios =
         resolve_bios_for_runtime(bios_path, argv[0], bios_explicit);
+#if defined(__ANDROID__)
+    __android_log_print(ANDROID_LOG_INFO, "BR2Recomp", "psxrecomp main.cpp: CHECKPOINT despues de resolve_bios_for_runtime, resolved_bios='%s'", resolved_bios.string().c_str());
+#endif
     if (resolved_bios.empty()) {
 #if defined(__ANDROID__)
     __android_log_print(ANDROID_LOG_INFO, "BR2Recomp", "psxrecomp main.cpp: marcador binario M56 (linea ~14418)");
