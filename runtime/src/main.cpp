@@ -14475,6 +14475,9 @@ int main(int argc, char** argv) {
         }
     }
 #endif
+#if defined(__ANDROID__)
+    __android_log_print(ANDROID_LOG_INFO, "BR2Recomp", "psxrecomp main.cpp: CHECKPOINT justo despues del bloque want_launcher");
+#endif
 
     if (overlay_init_thread.joinable()) {
         overlay_init_thread.join();
