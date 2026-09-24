@@ -14575,7 +14575,13 @@ int main(int argc, char** argv) {
     /* Re-apply the resolved language to the translation layer. text_xlate_init
      * (at config load) only saw the game.toml default; this folds in the
      * settings.toml override and the launcher's choice. No-op when unchanged. */
+#if defined(__ANDROID__)
+    __android_log_print(ANDROID_LOG_INFO, "BR2Recomp", "psxrecomp main.cpp: CHECKPOINT antes de text_xlate_set_language");
+#endif
     text_xlate_set_language(resolved_language.c_str());
+#if defined(__ANDROID__)
+    __android_log_print(ANDROID_LOG_INFO, "BR2Recomp", "psxrecomp main.cpp: CHECKPOINT despues de text_xlate_set_language");
+#endif
 
     /* CLI overrides win over config — applied last, before backend/port init.
      * Enables a soak fleet: several instances on distinct ports + renderers,
