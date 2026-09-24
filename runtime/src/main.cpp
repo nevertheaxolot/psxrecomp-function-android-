@@ -14495,6 +14495,9 @@ int main(int argc, char** argv) {
         }
     }
 
+#if defined(__ANDROID__)
+    __android_log_print(ANDROID_LOG_INFO, "BR2Recomp", "psxrecomp main.cpp: CHECKPOINT antes de netplay plan handling");
+#endif
     {
         /* Netplay plan handling. The launcher UI runs provider_commit_netplay
          * (mod_runtime_netplay_plan_applied) before booting, which stages the
