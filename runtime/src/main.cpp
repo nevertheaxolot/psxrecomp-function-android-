@@ -12162,6 +12162,8 @@ int main(int argc, char** argv) {
     std::fflush(stderr);
 #if defined(__ANDROID__)
     __android_log_print(ANDROID_LOG_INFO, "BR2Recomp", "psxrecomp main.cpp: main() entered (punto 1)");
+    __android_log_print(ANDROID_LOG_INFO, "BR2Recomp", "psxrecomp main.cpp: argv[0] real = '%s'", (argc > 0 && argv[0]) ? argv[0] : "(null/vacio)");
+    __android_log_print(ANDROID_LOG_INFO, "BR2Recomp", "psxrecomp main.cpp: exe_dir_from_argv(argv[0]) = '%s'", exe_dir_from_argv(argv[0]).string().c_str());
 #endif
 #if defined(RECOMP_LAUNCHER)
     launcher_boot_timing_mark("host:main_enter");
