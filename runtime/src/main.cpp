@@ -2150,6 +2150,16 @@ static std::filesystem::path exe_dir_from_argv(const char* argv0) {
     namespace fs = std::filesystem;
     std::error_code ec;
     fs::path exe_dir;
+    /* Android: SDL2 reemplaza argv[0] con "app_process" (el launcher real
+     * del proceso), asi que nunca podemos confiar en argv0 ahi. Permitimos
+     * forzar el directorio via variable de entorno, seteada desde Java
+     * con android.system.Os.setenv() antes de que arranque el motor. */
+    if (const char* override_dir = std::getenv("PSX_EXE_DIR_OVERRIDE")) {
+        if (override_dir[0]) {
+            fs::path p(override_dir);
+            if (fs::exists(p, ec)) return fs::absolute(p, ec);
+        }
+    }
 #ifdef _WIN32
     // Authoritative: the real image path, regardless of how we were invoked.
     {
