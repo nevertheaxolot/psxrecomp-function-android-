@@ -2560,6 +2560,9 @@ static std::filesystem::path resolve_bios_for_runtime(const char* requested,
     const bool player_bios_selectable = psx_bios_has_selectable() != 0;
     const bool bundled_only =
         openbios_allowed && bundled && !player_bios_selectable;
+    #if defined(__ANDROID__)
+    __android_log_print(ANDROID_LOG_INFO, "BR2Recomp", "psxrecomp main.cpp: DIAG bios openbios_allowed=%d bundled=%d player_bios_selectable=%d bundled_only=%d requested='%s' requested_is_explicit=%d", (int)openbios_allowed, (int)(bundled != nullptr), (int)player_bios_selectable, (int)bundled_only, requested ? requested : "(null)", (int)requested_is_explicit);
+#endif
 
     /* 1. An explicit choice: --bios, else a remembered pick. A product build
      * with only its bundled backend has no meaningful player choice: ignore
