@@ -1,3 +1,4 @@
+#include "android_stdio_log.h"
 ﻿/* main.cpp — Phase 3 runtime entry point.
  *
  * Loads BIOS ROM, initializes CPU state + SDL display, calls into
@@ -12176,6 +12177,7 @@ namespace {
 #endif
 
 int main(int argc, char** argv) {
+    br2_redirect_stdio();
     /* Force line-buffered output so messages appear even if killed. */
     std::setvbuf(stdout, nullptr, _IOLBF, BUFSIZ);
     std::setvbuf(stderr, nullptr, _IOLBF, BUFSIZ);
