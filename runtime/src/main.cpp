@@ -2587,6 +2587,14 @@ static std::filesystem::path resolve_bios_for_runtime(const char* requested,
     if (openbios_allowed && bundled) {
         std::filesystem::path img = resolve_bios_path(
             s_bundled_bios_rel.empty() ? nullptr : s_bundled_bios_rel.c_str(), argv0);
+#if defined(__ANDROID__)
+        {
+            std::error_code diag_ec;
+            bool diag_exists = !img.empty() && std::filesystem::exists(img, diag_ec);
+            const PsxBiosBackend* diag_match = diag_exists ? bios_backend_for_file(img, nullptr, nullptr) : nullptr;
+            __android_log_print(ANDROID_LOG_INFO, "BR2Recomp", "psxrecomp main.cpp: DIAG bios paso2 s_bundled_bios_rel='%s' img='%s' img_exists=%d match_bundled=%d", s_bundled_bios_rel.c_str(), img.string().c_str(), (int)diag_exists, (int)(diag_match == bundled));
+        }
+#endif
         if (!img.empty() && std::filesystem::exists(img) &&
             bios_backend_for_file(img, nullptr, nullptr) == bundled &&
             psx_bios_activate(bundled)) {
