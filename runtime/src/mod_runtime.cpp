@@ -33,6 +33,7 @@
 #include <sys/types.h>
 #include <sys/wait.h>
 #include <unistd.h>
+#include <memory>
 #endif
 
 extern "C" uint8_t psx_read_byte(uint32_t addr);
@@ -259,7 +260,8 @@ bool sha256_file(const std::filesystem::path& path, std::string& out,
         return true;
     }
 
-    std::array<uint8_t, 1024 * 1024> buffer{};
+    auto buffer_holder = std::make_unique<std::array<uint8_t, 256 * 1024>>();
+    auto& buffer = *buffer_holder; // en heap, no en el stack: en Android el stack de un hilo suele ser mucho mas chico que en Linux de escritorio
     std::ifstream file(input, std::ios::binary);
     if (!file) {
         if (error) *error = "cannot fingerprint image: " + input.string();
